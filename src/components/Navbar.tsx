@@ -4,12 +4,16 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
-import { Sun, Moon, Menu, X, BarChart3, Database } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { Sun, Moon, Menu, X, BarChart3, Database, ShieldCheck } from 'lucide-react';
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
+  const { user } = useAuth();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const adminHref = user?.role === 'bps' ? '/admin/bps' : user?.role === 'desa' ? '/admin/desa' : '/login';
 
   const navLinks = [
     { name: 'Beranda', href: '/' },
@@ -62,6 +66,15 @@ export default function Navbar() {
             {/* Separator */}
             <div className="h-6 w-px bg-card-border" />
 
+            {/* Admin Login */}
+            <Link
+              href={adminHref}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-primary-color/30 text-primary-color bg-primary-glow hover:opacity-80 transition-all"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              {user ? 'Dashboard Admin' : 'Login Admin'}
+            </Link>
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -111,6 +124,14 @@ export default function Navbar() {
               {link.name}
             </Link>
           ))}
+          <Link
+            href={adminHref}
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 px-4 py-3 rounded-lg text-base font-bold text-primary-color hover:bg-primary-glow transition-all"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            {user ? 'Dashboard Admin' : 'Login Admin'}
+          </Link>
         </div>
       )}
     </nav>

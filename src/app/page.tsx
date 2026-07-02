@@ -113,7 +113,7 @@ export default function Home() {
               { 
                 icon: <BookOpen className="w-6 h-6 text-primary-color" />, 
                 value: stats.totalPublikasi, 
-                label: 'Publikasi Angka', 
+                label: 'Publikasi Desa', 
                 desc: 'Dokumen Desa Dalam Angka' 
               },
               { 
