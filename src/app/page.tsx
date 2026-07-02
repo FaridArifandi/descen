@@ -85,7 +85,7 @@ export default function Home() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link 
-                href="/daftar-desa?tab=publikasi"
+                href="/publikasi"
                 className="flex items-center justify-center space-x-2 px-6 py-3 rounded-xl glass hover:bg-foreground/5 text-foreground font-medium border-card-border hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
               >
                 <FileDown className="w-4 h-4 text-primary-color" />

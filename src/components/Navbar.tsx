@@ -19,6 +19,7 @@ export default function Navbar() {
     { name: 'Beranda', href: '/' },
     { name: 'Tentang Desa Cantik', href: '/tentang' },
     { name: 'Daftar Desa', href: '/daftar-desa' },
+    { name: 'Publikasi', href: '/publikasi' },
     { name: 'Kontak', href: '/kontak' },
   ];
 
