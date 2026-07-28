@@ -21,15 +21,18 @@ import {
   FileImage, 
   Download, 
   Eye, 
-  ChevronRight, 
+  ChevronRight,
+  ChevronLeft, 
   ExternalLink,
   Info,
   Maximize2,
   Share2,
   X,
   Play,
-  Layers
+  Layers,
+  Filter
 } from 'lucide-react';
+import { decodeDesaSlug } from '@/lib/slug';
 import {
   ResponsiveContainer,
   BarChart,
@@ -59,9 +62,9 @@ const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
 
 export default function DesaDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const id = parseInt(resolvedParams.id);
+  const rawIdParam = resolvedParams.id;
   
-  const [activeTab, setActiveTab] = useState<'publikasi' | 'profil' | 'potensi' | 'infografis'>('publikasi');
+  const [activeTab, setActiveTab] = useState<'publikasi' | 'profil' | 'potensi' | 'peta' | 'infografis'>('publikasi');
   const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
   const [selectedInfographic, setSelectedInfographic] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
@@ -76,6 +79,11 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
   // Filter year state for Publikasi tab
   const [filterTahunPublikasi, setFilterTahunPublikasi] = useState<string>('all');
   const [copiedShare, setCopiedShare] = useState<boolean>(false);
+
+  // Filter & Pagination for Potensi tab (PDF Scalability)
+  const [potensiFilter, setPotensiFilter] = useState<string>('all');
+  const [potensiPage, setPotensiPage] = useState<number>(1);
+  const POTENSI_PER_PAGE = 4;
 
   useEffect(() => {
     async function loadAllData() {
@@ -94,6 +102,11 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
     }
     loadAllData();
   }, []);
+
+  // Decode ID from obfuscated slug or numeric param
+  const id = useMemo(() => {
+    return decodeDesaSlug(rawIdParam, desaList);
+  }, [rawIdParam, desaList]);
 
   // Find Village data
   const desa = useMemo(() => {
@@ -120,7 +133,20 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
     return rawPublikasi.filter(p => p.tahun.toString() === filterTahunPublikasi);
   }, [rawPublikasi, filterTahunPublikasi]);
 
-  const potensi = useMemo(() => potensiList.filter(p => p.desaId === id), [potensiList, id]);
+  const rawPotensi = useMemo(() => potensiList.filter(p => p.desaId === id), [potensiList, id]);
+  
+  const filteredPotensi = useMemo(() => {
+    if (potensiFilter === 'all') return rawPotensi;
+    return rawPotensi.filter(p => p.kategori === potensiFilter);
+  }, [rawPotensi, potensiFilter]);
+
+  const totalPotensiPages = Math.ceil(filteredPotensi.length / POTENSI_PER_PAGE) || 1;
+
+  const paginatedPotensi = useMemo(() => {
+    const start = (potensiPage - 1) * POTENSI_PER_PAGE;
+    return filteredPotensi.slice(start, start + POTENSI_PER_PAGE);
+  }, [filteredPotensi, potensiPage]);
+
   const infografis = useMemo(() => infografisList.filter(i => i.desaId === id), [infografisList, id]);
 
   // Web share function
@@ -247,6 +273,7 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
               { id: 'publikasi', label: 'Publikasi Desa', icon: <BookOpen className="w-4 h-4" /> },
               { id: 'profil', label: 'Profil & Monografi', icon: <Info className="w-4 h-4" /> },
               { id: 'potensi', label: 'Potensi Unggulan', icon: <TrendingUp className="w-4 h-4" /> },
+              { id: 'peta', label: 'Peta Lokasi', icon: <MapPin className="w-4 h-4" /> },
               { id: 'infografis', label: 'Galeri Infografis', icon: <FileImage className="w-4 h-4" /> }
             ].map(tab => (
               <button
@@ -485,40 +512,76 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
 
               {/* TAB 3: POTENSI DESA */}
               {activeTab === 'potensi' && (
-                <div className="space-y-8">
-                  {potensi.length === 0 ? (
+                <div className="space-y-6">
+                  {/* Category Filter & Header */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass rounded-2xl p-4 border border-card-border">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="w-5 h-5 text-primary-color" />
+                      <span className="font-bold text-foreground text-sm">Potensi & Komoditas Unggulan</span>
+                      <span className="text-xs text-muted-text font-semibold">({filteredPotensi.length} Data)</span>
+                    </div>
+
+                    {/* Category Filter Tabs */}
+                    <div className="flex items-center space-x-1.5 overflow-x-auto text-xs w-full sm:w-auto">
+                      {[
+                        { id: 'all', label: 'Semua Kategori' },
+                        { id: 'ekonomi', label: 'Ekonomi & UMKM' },
+                        { id: 'wisata', label: 'Wisata' },
+                        { id: 'investasi', label: 'Investasi' },
+                      ].map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            setPotensiFilter(cat.id);
+                            setPotensiPage(1);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-all shrink-0 ${
+                            potensiFilter === cat.id
+                              ? 'bg-primary-color text-white'
+                              : 'glass text-muted-text hover:text-foreground'
+                          }`}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {filteredPotensi.length === 0 ? (
                     <div className="glass rounded-2xl p-10 text-center border border-card-border">
                       <TrendingUp className="w-10 h-10 text-muted-text mx-auto mb-3" />
-                      <p className="text-muted-text">Belum ada data potensi unggulan yang diunggah untuk desa ini.</p>
+                      <p className="text-muted-text">Belum ada data potensi unggulan untuk kriteria ini.</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      {/* Potentials List */}
-                      <div className="space-y-6">
-                        {potensi.map(pot => (
+                    <>
+                      {/* Grid of Cards (2 cols) */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {paginatedPotensi.map(pot => (
                           <div 
                             key={pot.id}
-                            className="glass rounded-2xl p-6 border border-card-border flex gap-4 hover:shadow-[0_0_20px_rgba(0,210,255,0.05)] transition-all duration-300"
+                            className="glass rounded-2xl p-6 border border-card-border flex flex-col sm:flex-row gap-5 hover:border-primary-color/40 hover:shadow-[0_8px_30px_rgba(0,210,255,0.08)] transition-all duration-300 justify-between"
                           >
                             <div className="flex flex-col justify-between flex-1">
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-primary-glow text-primary-color border border-primary-color/10">
+                                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-primary-glow text-primary-color border border-primary-color/20">
                                     {pot.kategori}
                                   </span>
-                                  <span className="text-xs text-muted-text font-semibold">
-                                    {pot.subKategori}
-                                  </span>
+                                  {pot.subKategori && (
+                                    <span className="text-xs text-muted-text font-semibold">
+                                      {pot.subKategori}
+                                    </span>
+                                  )}
                                 </div>
-                                <h3 className="text-lg font-bold text-foreground mt-2">
+                                <h3 className="text-lg font-extrabold text-foreground mt-2.5">
                                   {pot.nama}
                                 </h3>
-                                <p className="text-sm text-muted-text mt-2 leading-relaxed">
+                                <p className="text-xs sm:text-sm text-muted-text mt-2 leading-relaxed line-clamp-4">
                                   {pot.deskripsi}
                                 </p>
                               </div>
                               
-                              {/* Media trigger links */}
+                              {/* Video Trigger */}
                               {pot.videoUrl && (
                                 <button
                                   onClick={() => setActiveVideo(pot.videoUrl || null)}
@@ -531,13 +594,13 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                             </div>
 
                             {pot.fotoUrl && (
-                              <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-foreground/5 rounded-xl overflow-hidden shrink-0 border border-card-border">
+                              <div className="relative w-full sm:w-36 h-36 bg-foreground/5 rounded-xl overflow-hidden shrink-0 border border-card-border">
                                 <Image
                                   src={pot.fotoUrl}
                                   alt={pot.nama}
                                   fill
                                   className="object-cover"
-                                  sizes="(max-w-768px) 100vw, 120px"
+                                  sizes="150px"
                                 />
                               </div>
                             )}
@@ -545,39 +608,73 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                         ))}
                       </div>
 
-                      {/* Map Widget (Futuristic Mock Map) */}
-                      <div className="glass rounded-2xl p-6 border border-card-border flex flex-col justify-between h-full min-h-[400px]">
-                        <div>
-                          <div className="flex items-center space-x-2 text-primary-color mb-3">
-                            <MapPin className="w-5 h-5" />
-                            <h3 className="font-bold text-lg">Peta Lokasi & Koordinat</h3>
-                          </div>
-                          <p className="text-sm text-muted-text leading-relaxed">
-                            Lokasi geografis desa Cantik {desa.nama} di Kota Subulussalam. Gunakan tombol link eksternal untuk rute langsung via Google Maps.
+                      {/* Pagination Controls (Shown when totalPages > 1) */}
+                      {totalPotensiPages > 1 && (
+                        <div className="flex items-center justify-between pt-4 border-t border-card-border">
+                          <p className="text-xs text-muted-text font-semibold">
+                            Halaman <span className="font-bold text-foreground">{potensiPage}</span> dari <span className="font-bold text-foreground">{totalPotensiPages}</span>
                           </p>
-                        </div>
 
-                        {/* Real Interactive Map Box */}
-                        <div className="my-4">
-                          <MapDesa
-                            desaList={[desa]}
-                            kecamatanList={kecamatanList}
-                            center={[desa.latitude || 2.6288, desa.longitude || 98.0062]}
-                            zoom={13}
-                            height="260px"
-                          />
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => setPotensiPage(prev => Math.max(prev - 1, 1))}
+                              disabled={potensiPage === 1}
+                              className="p-2 rounded-xl glass border border-card-border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-glow hover:text-primary-color text-foreground transition-all"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setPotensiPage(prev => Math.min(prev + 1, totalPotensiPages))}
+                              disabled={potensiPage === totalPotensiPages}
+                              className="p-2 rounded-xl glass border border-card-border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-glow hover:text-primary-color text-foreground transition-all"
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
-                        <a 
-                          href={`https://www.google.com/maps/search/?api=1&query=${desa.latitude},${desa.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-center space-x-2 w-full py-3 rounded-xl bg-primary-color text-white font-semibold hover:opacity-90 transition-all duration-200 text-sm"
-                        >
-                          <span>Buka di Google Maps</span>
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
+              {/* TAB 4: PETA LOKASI DESA (Dedicated Tab) */}
+              {activeTab === 'peta' && (
+                <div className="space-y-6">
+                  <div className="glass rounded-2xl p-6 border border-card-border space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-card-border pb-4">
+                      <div>
+                        <h3 className="font-extrabold text-xl text-foreground flex items-center gap-2">
+                          <MapPin className="w-5 h-5 text-primary-color" />
+                          <span>Peta Lokasi Geografis {desa.nama}</span>
+                        </h3>
+                        <p className="text-xs sm:text-sm text-muted-text mt-1">
+                          Kecamatan {kecamatanName} • Koordinat: {desa.latitude}, {desa.longitude}
+                        </p>
                       </div>
+
+                      <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${desa.latitude},${desa.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-primary-color text-white font-bold text-xs hover:opacity-90 transition-all shadow-md shrink-0"
+                      >
+                        <span>Buka di Google Maps</span>
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+
+                    {/* Dedicated Leaflet Map Container */}
+                    <MapDesa
+                      desaList={[desa]}
+                      kecamatanList={kecamatanList}
+                      center={[desa.latitude || 2.6288, desa.longitude || 98.0062]}
+                      zoom={14}
+                      height="460px"
+                    />
+                  </div>
+                </div>
+              )}
                     </div>
                   )}
                 </div>

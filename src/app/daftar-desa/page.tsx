@@ -20,6 +20,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { getDesaList, getKecamatan } from '@/services/database';
 import { Desa, Kecamatan } from '@/types';
+import { encodeDesaSlug } from '@/lib/slug';
 
 const MapDesa = dynamic(() => import('@/components/MapDesa'), {
   ssr: false,
@@ -246,7 +247,7 @@ function DaftarDesaContent() {
                         </p>
                       </div>
                       <Link
-                        href={`/desa/${desa.id}`}
+                        href={`/desa/${encodeDesaSlug(desa.id, desa.nama)}`}
                         className="p-2 rounded-lg bg-primary-glow border border-primary-color/20 text-primary-color hover:bg-primary-color hover:text-white transition-all shadow-sm shrink-0"
                         title="Lihat Detail Data"
                       >
@@ -325,7 +326,7 @@ function DaftarDesaContent() {
                       
                       <div className="mt-6 pt-4 border-t border-card-border flex items-center justify-between">
                         <Link
-                          href={`/desa/${desa.id}`}
+                          href={`/desa/${encodeDesaSlug(desa.id, desa.nama)}`}
                           className="inline-flex items-center space-x-1.5 text-sm font-semibold text-primary-color group-hover:translate-x-1 transition-transform"
                         >
                           <span>Lihat Detail & Data</span>
@@ -367,7 +368,7 @@ function DaftarDesaContent() {
                         <td className="p-4 text-foreground/80">{getKecamatanName(desa.kecamatanId)}</td>
                         <td className="p-4 text-center">
                           <Link
-                            href={`/desa/${desa.id}`}
+                            href={`/desa/${encodeDesaSlug(desa.id, desa.nama)}`}
                             className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary-glow border border-primary-color/20 text-primary-color text-xs font-semibold hover:bg-primary-color hover:text-white transition-all duration-200"
                           >
                             <span>Buka Data</span>

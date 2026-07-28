@@ -21,6 +21,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { getDesaList, getKecamatan, getDashboardStatsFromDb } from '@/services/database';
 import { Desa, Kecamatan } from '@/types';
+import { encodeDesaSlug } from '@/lib/slug';
 
 const MapDesa = dynamic(() => import('@/components/MapDesa'), {
   ssr: false,
@@ -287,7 +288,7 @@ export default function Home() {
                   
                   <div className="mt-6 pt-4 border-t border-card-border/60 flex items-center justify-between">
                     <Link
-                      href={`/desa/${desa.id}`}
+                      href={`/desa/${encodeDesaSlug(desa.id, desa.nama)}`}
                       className="inline-flex items-center space-x-1.5 text-xs sm:text-sm font-bold text-primary-color group-hover:translate-x-1 transition-transform"
                     >
                       <span>Detail Data & Publikasi</span>

@@ -37,6 +37,7 @@ import {
   getDashboardStatsFromDb
 } from '@/services/database';
 import { Desa, Kecamatan, Publikasi, Potensi, Infografis } from '@/types';
+import { encodeDesaSlug } from '@/lib/slug';
 
 const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
 
@@ -244,7 +245,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="p-3 text-center">
                           <Link
-                            href={`/desa/${desa.id}`}
+                            href={`/desa/${encodeDesaSlug(desa.id, desa.nama)}`}
                             className="inline-flex items-center space-x-1 text-primary-color font-bold hover:underline"
                           >
                             <span>Buka</span>

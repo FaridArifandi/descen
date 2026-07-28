@@ -6,7 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Link from 'next/link';
 import { Desa, Kecamatan } from '@/types';
-import { ArrowRight } from 'lucide-react';
+import { encodeDesaSlug } from '@/lib/slug';
 
 // Custom Marker Icon SVG for Leaflet
 const createCustomIcon = (color: string = '#00d2ff') => {
@@ -92,7 +92,7 @@ export default function MapDesa({
                     Binaan {desa.tahunPembinaan}
                   </span>
                   <Link
-                    href={`/desa/${desa.id}`}
+                    href={`/desa/${encodeDesaSlug(desa.id, desa.nama)}`}
                     className="inline-flex items-center text-xs font-bold text-blue-600 hover:text-blue-800"
                   >
                     <span>Detail Data</span>
