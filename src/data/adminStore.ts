@@ -1,8 +1,8 @@
 /**
  * adminStore.ts
  * 
- * In-memory + localStorage store untuk CRUD admin (dummy, no database).
- * Semua data diinisialisasi dari mockData, lalu disimpan di localStorage.
+ * Local store + Supabase real-time sync.
+ * Menyimpan ke local state & menyinkronkan langsung ke database Supabase.
  */
 
 import {
@@ -13,8 +13,8 @@ import {
   mockKecamatan,
 } from '@/data/mockData';
 import { Desa, Publikasi, Potensi, Infografis, Kecamatan } from '@/types';
+import { supabase } from '@/lib/supabase';
 
-// ---------- types ----------
 export interface AdminStore {
   desa: Desa[];
   publikasi: Publikasi[];
@@ -23,9 +23,7 @@ export interface AdminStore {
   kecamatan: Kecamatan[];
 }
 
-const STORE_KEY = 'desacantik_admin_store';
-const STORE_VERSION = 'v3'; // bump ini setiap kali mockData berubah signifikan
-const VERSION_KEY = 'desacantik_store_version';
+const STORE_KEY = 'desacantik_admin_store_v4';
 
 function loadStore(): AdminStore {
   if (typeof window === 'undefined') {
@@ -38,20 +36,13 @@ function loadStore(): AdminStore {
     };
   }
 
-  // Force reset jika versi berubah
-  const storedVersion = localStorage.getItem(VERSION_KEY);
-  if (storedVersion !== STORE_VERSION) {
-    localStorage.removeItem(STORE_KEY);
-    localStorage.setItem(VERSION_KEY, STORE_VERSION);
-  }
-
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {
     // ignore
   }
-  // Initialize from mock
+
   const initial: AdminStore = {
     desa: mockDesa,
     publikasi: mockPublikasi,
@@ -69,39 +60,112 @@ function saveStore(store: AdminStore) {
   }
 }
 
-// ---------- Generic CRUD helpers ----------
 function nextId<T extends { id: number }>(items: T[]): number {
   return items.length === 0 ? 1 : Math.max(...items.map(x => x.id)) + 1;
+}
+
+// ── Sync awal dari Supabase ke localStorage ──
+export async function syncFromSupabase() {
+  try {
+    const { data: dbDesa } = await supabase.from('desa').select('*').order('id', { ascending: true });
+    if (dbDesa && dbDesa.length > 0) {
+      const store = loadStore();
+      store.desa = dbDesa.map(d => ({
+        id: d.id,
+        nama: d.nama,
+        kecamatanId: d.kecamatan_id,
+        tahunPembinaan: d.tahun_pembinaan,
+        fotoCover: d.foto_cover || '',
+        profilAbstrak: d.profil_abstrak || '',
+        profilFileUrl: d.profil_file_url || '#',
+        monografiAbstrak: d.monografi_abstrak || '',
+        monografiFileUrl: d.monografi_file_url || '#',
+        latitude: Number(d.latitude) || 0,
+        longitude: Number(d.longitude) || 0,
+      }));
+      saveStore(store);
+    }
+  } catch {
+    // fallback ke localStorage jika offline
+  }
+}
+
+// Trigger async sync di background
+if (typeof window !== 'undefined') {
+  syncFromSupabase();
 }
 
 // ========== DESA ==========
 export function getAllDesa(): Desa[] {
   return loadStore().desa;
 }
+
 export function createDesa(data: Omit<Desa, 'id'>): Desa {
   const store = loadStore();
-  const item = { id: nextId(store.desa), ...data };
+  const newId = nextId(store.desa);
+  const item: Desa = { id: newId, ...data };
   store.desa.push(item);
   saveStore(store);
+
+  // Kirim ke Supabase secara asynchronous
+  supabase.from('desa').insert([{
+    id: newId,
+    nama: data.nama,
+    kecamatan_id: data.kecamatanId,
+    tahun_pembinaan: data.tahunPembinaan,
+    foto_cover: data.fotoCover,
+    profil_abstrak: data.profilAbstrak,
+    profil_file_url: data.profilFileUrl,
+    monografi_abstrak: data.monografiAbstrak,
+    monografi_file_url: data.monografiFileUrl,
+    latitude: data.latitude,
+    longitude: data.longitude,
+  }]).then(({ error }) => {
+    if (error) console.error('Error inserting to Supabase:', error);
+  });
+
   return item;
 }
+
 export function updateDesa(id: number, data: Partial<Omit<Desa, 'id'>>): Desa | null {
   const store = loadStore();
   const idx = store.desa.findIndex(d => d.id === id);
   if (idx === -1) return null;
   store.desa[idx] = { ...store.desa[idx], ...data };
   saveStore(store);
+
+  // Sync update ke Supabase
+  const payload: Record<string, unknown> = {};
+  if (data.nama !== undefined) payload.nama = data.nama;
+  if (data.kecamatanId !== undefined) payload.kecamatan_id = data.kecamatanId;
+  if (data.tahunPembinaan !== undefined) payload.tahun_pembinaan = data.tahunPembinaan;
+  if (data.fotoCover !== undefined) payload.foto_cover = data.fotoCover;
+  if (data.profilAbstrak !== undefined) payload.profil_abstrak = data.profilAbstrak;
+  if (data.monografiAbstrak !== undefined) payload.monografi_abstrak = data.monografiAbstrak;
+  if (data.latitude !== undefined) payload.latitude = data.latitude;
+  if (data.longitude !== undefined) payload.longitude = data.longitude;
+
+  supabase.from('desa').update(payload).eq('id', id).then(({ error }) => {
+    if (error) console.error('Error updating to Supabase:', error);
+  });
+
   return store.desa[idx];
 }
+
 export function deleteDesa(id: number): boolean {
   const store = loadStore();
   const before = store.desa.length;
   store.desa = store.desa.filter(d => d.id !== id);
-  // also cascade
   store.publikasi = store.publikasi.filter(p => p.desaId !== id);
   store.potensi = store.potensi.filter(p => p.desaId !== id);
-  store.infografis = store.infografis.filter(p => p.desaId !== id);
+  store.infografis = store.infografis.filter(i => i.desaId !== id);
   saveStore(store);
+
+  // Sync delete ke Supabase
+  supabase.from('desa').delete().eq('id', id).then(({ error }) => {
+    if (error) console.error('Error deleting from Supabase:', error);
+  });
+
   return store.desa.length < before;
 }
 
@@ -110,26 +174,59 @@ export function getAllPublikasi(desaId?: number): Publikasi[] {
   const store = loadStore();
   return desaId ? store.publikasi.filter(p => p.desaId === desaId) : store.publikasi;
 }
+
 export function createPublikasi(data: Omit<Publikasi, 'id'>): Publikasi {
   const store = loadStore();
-  const item = { id: nextId(store.publikasi), ...data };
+  const newId = nextId(store.publikasi);
+  const item = { id: newId, ...data };
   store.publikasi.push(item);
   saveStore(store);
+
+  supabase.from('publikasi').insert([{
+    id: newId,
+    desa_id: data.desaId,
+    judul: data.judul,
+    tahun: data.tahun,
+    ringkasan: data.ringkasan,
+    cover_url: data.coverUrl,
+    pdf_url: data.pdfUrl,
+  }]).then(({ error }) => {
+    if (error) console.error('Error inserting publikasi to Supabase:', error);
+  });
+
   return item;
 }
+
 export function updatePublikasi(id: number, data: Partial<Omit<Publikasi, 'id'>>): Publikasi | null {
   const store = loadStore();
   const idx = store.publikasi.findIndex(p => p.id === id);
   if (idx === -1) return null;
   store.publikasi[idx] = { ...store.publikasi[idx], ...data };
   saveStore(store);
+
+  supabase.from('publikasi').update({
+    judul: data.judul,
+    tahun: data.tahun,
+    ringkasan: data.ringkasan,
+    cover_url: data.coverUrl,
+    pdf_url: data.pdfUrl,
+  }).eq('id', id).then(({ error }) => {
+    if (error) console.error('Error updating publikasi to Supabase:', error);
+  });
+
   return store.publikasi[idx];
 }
+
 export function deletePublikasi(id: number): boolean {
   const store = loadStore();
   const before = store.publikasi.length;
   store.publikasi = store.publikasi.filter(p => p.id !== id);
   saveStore(store);
+
+  supabase.from('publikasi').delete().eq('id', id).then(({ error }) => {
+    if (error) console.error('Error deleting publikasi from Supabase:', error);
+  });
+
   return store.publikasi.length < before;
 }
 
@@ -138,26 +235,57 @@ export function getAllPotensi(desaId?: number): Potensi[] {
   const store = loadStore();
   return desaId ? store.potensi.filter(p => p.desaId === desaId) : store.potensi;
 }
+
 export function createPotensi(data: Omit<Potensi, 'id'>): Potensi {
   const store = loadStore();
-  const item = { id: nextId(store.potensi), ...data };
+  const newId = nextId(store.potensi);
+  const item = { id: newId, ...data };
   store.potensi.push(item);
   saveStore(store);
+
+  supabase.from('potensi').insert([{
+    id: newId,
+    desa_id: data.desaId,
+    judul: data.nama,
+    deskripsi: data.deskripsi,
+    foto_url: data.fotoUrl,
+    kategori: data.kategori,
+  }]).then(({ error }) => {
+    if (error) console.error('Error inserting potensi to Supabase:', error);
+  });
+
   return item;
 }
+
 export function updatePotensi(id: number, data: Partial<Omit<Potensi, 'id'>>): Potensi | null {
   const store = loadStore();
   const idx = store.potensi.findIndex(p => p.id === id);
   if (idx === -1) return null;
   store.potensi[idx] = { ...store.potensi[idx], ...data };
   saveStore(store);
+
+  supabase.from('potensi').update({
+    judul: data.nama,
+    deskripsi: data.deskripsi,
+    foto_url: data.fotoUrl,
+    kategori: data.kategori,
+  }).eq('id', id).then(({ error }) => {
+    if (error) console.error('Error updating potensi to Supabase:', error);
+  });
+
   return store.potensi[idx];
 }
+
 export function deletePotensi(id: number): boolean {
   const store = loadStore();
   const before = store.potensi.length;
   store.potensi = store.potensi.filter(p => p.id !== id);
   saveStore(store);
+
+  supabase.from('potensi').delete().eq('id', id).then(({ error }) => {
+    if (error) console.error('Error deleting potensi from Supabase:', error);
+  });
+
   return store.potensi.length < before;
 }
 
@@ -166,26 +294,53 @@ export function getAllInfografis(desaId?: number): Infografis[] {
   const store = loadStore();
   return desaId ? store.infografis.filter(i => i.desaId === desaId) : store.infografis;
 }
+
 export function createInfografis(data: Omit<Infografis, 'id'>): Infografis {
   const store = loadStore();
-  const item = { id: nextId(store.infografis), ...data };
+  const newId = nextId(store.infografis);
+  const item = { id: newId, ...data };
   store.infografis.push(item);
   saveStore(store);
+
+  supabase.from('infografis').insert([{
+    id: newId,
+    desa_id: data.desaId,
+    judul: data.judul,
+    gambar_url: data.imageUrl,
+  }]).then(({ error }) => {
+    if (error) console.error('Error inserting infografis to Supabase:', error);
+  });
+
   return item;
 }
+
 export function updateInfografis(id: number, data: Partial<Omit<Infografis, 'id'>>): Infografis | null {
   const store = loadStore();
   const idx = store.infografis.findIndex(i => i.id === id);
   if (idx === -1) return null;
   store.infografis[idx] = { ...store.infografis[idx], ...data };
   saveStore(store);
+
+  supabase.from('infografis').update({
+    judul: data.judul,
+    gambar_url: data.imageUrl,
+  }).eq('id', id).then(({ error }) => {
+    if (error) console.error('Error updating infografis to Supabase:', error);
+  });
+
   return store.infografis[idx];
 }
+
 export function deleteInfografis(id: number): boolean {
   const store = loadStore();
   const before = store.infografis.length;
   store.infografis = store.infografis.filter(i => i.id !== id);
   saveStore(store);
+
+  supabase.from('infografis').delete().eq('id', id).then(({ error }) => {
+    if (error) console.error('Error deleting infografis from Supabase:', error);
+  });
+
   return store.infografis.length < before;
 }
 
