@@ -675,10 +675,6 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                   </div>
                 </div>
               )}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* TAB 4: INFOGRAFIS DESA */}
               {activeTab === 'infografis' && (
