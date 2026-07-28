@@ -99,7 +99,7 @@ export default function Home() {
           >
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full border border-primary-color/20 bg-primary-glow text-primary-color text-xs font-semibold tracking-wider uppercase">
               <CheckCircle className="w-3.5 h-3.5" />
-              <span>Program Resmi BPS Kota Subulussalam</span>
+              <span>Program Resmi BPS</span>
             </div>
             
             <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight">
@@ -193,7 +193,7 @@ export default function Home() {
           </motion.div>
         </section>
 
-        {/* Carousel Desa Binaan Section */}
+        {/* Carousel Desa Binaan Section with Blur Edges */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
             <div>
@@ -210,7 +210,7 @@ export default function Home() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => scrollCarousel('left')}
-                  className="p-2.5 rounded-xl glass border border-card-border hover:bg-primary-glow hover:border-primary-color/30 hover:text-primary-color text-foreground transition-all duration-200"
+                  className="p-2.5 rounded-xl glass border border-card-border hover:bg-primary-glow hover:border-primary-color/30 hover:text-primary-color text-foreground transition-all duration-200 shadow-sm"
                   aria-label="Sebelumnya"
                   title="Sebelumnya"
                 >
@@ -218,7 +218,7 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => scrollCarousel('right')}
-                  className="p-2.5 rounded-xl glass border border-card-border hover:bg-primary-glow hover:border-primary-color/30 hover:text-primary-color text-foreground transition-all duration-200"
+                  className="p-2.5 rounded-xl glass border border-card-border hover:bg-primary-glow hover:border-primary-color/30 hover:text-primary-color text-foreground transition-all duration-200 shadow-sm"
                   aria-label="Selanjutnya"
                   title="Selanjutnya"
                 >
@@ -238,64 +238,70 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Carousel Slider Horizontal Container */}
-          <div
-            ref={carouselRef}
-            className="flex space-x-6 overflow-x-auto pb-6 pt-2 snap-x snap-mandatory no-scrollbar scroll-smooth"
-          >
-            {desaList.map((desa, idx) => (
-              <motion.div
-                key={desa.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: idx * 0.05 }}
-                className="group flex flex-col rounded-2xl glass overflow-hidden border border-card-border hover:border-primary-color/40 hover:shadow-[0_8px_32px_rgba(0,210,255,0.08)] transition-all duration-300 w-[300px] sm:w-[360px] shrink-0 snap-start"
-              >
-                {/* Photo Header */}
-                <div className="relative h-48 w-full overflow-hidden bg-foreground/5">
-                  <Image
-                    src={desa.fotoCover}
-                    alt={desa.nama}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                    sizes="(max-w-768px) 100vw, 360px"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-                  
-                  {/* Badges */}
-                  <div className="absolute top-4 left-4 flex space-x-2">
-                    <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase bg-background/80 border border-card-border backdrop-blur-sm text-primary-color">
-                      {getKecamatanName(desa.kecamatanId)}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase bg-primary-color/90 text-white backdrop-blur-sm">
-                      Binaan {desa.tahunPembinaan}
-                    </span>
-                  </div>
-                </div>
+          {/* Carousel Outer Wrapper with Blur Overlay Edges */}
+          <div className="relative">
+            {/* Left Blur Fade Overlay */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:w-16 bg-gradient-to-r from-background via-background/70 to-transparent z-10" />
 
-                {/* Card Content */}
-                <div className="flex-1 p-6 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold group-hover:text-primary-color transition-colors">
-                      {desa.nama}
-                    </h3>
-                    <p className="text-sm text-muted-text mt-3 line-clamp-3 leading-relaxed">
-                      {desa.profilAbstrak}
-                    </p>
+            {/* Right Blur Fade Overlay */}
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-16 bg-gradient-to-l from-background via-background/70 to-transparent z-10" />
+
+            {/* Carousel Slider Horizontal Container */}
+            <div
+              ref={carouselRef}
+              className="flex space-x-6 overflow-x-auto pb-6 pt-2 px-2 sm:px-4 snap-x snap-mandatory no-scrollbar scroll-smooth"
+            >
+              {desaList.map((desa, idx) => (
+                <motion.div
+                  key={desa.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
+                  className="group flex flex-col rounded-2xl glass overflow-hidden border border-card-border hover:border-primary-color/50 hover:shadow-[0_12px_40px_rgba(0,210,255,0.12)] transition-all duration-300 w-[290px] sm:w-[350px] shrink-0 snap-start hover:-translate-y-1"
+                >
+                  {/* Photo Header */}
+                  <div className="relative h-48 w-full overflow-hidden bg-foreground/5">
+                    <Image
+                      src={desa.fotoCover}
+                      alt={desa.nama}
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                      sizes="(max-w-768px) 100vw, 350px"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                    
+                    {/* Badge Kecamatan */}
+                    <div className="absolute top-4 left-4">
+                      <span className="px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase bg-background/90 border border-card-border backdrop-blur-md text-primary-color shadow-sm">
+                        {getKecamatanName(desa.kecamatanId)}
+                      </span>
+                    </div>
                   </div>
-                  
-                  <div className="mt-6 pt-4 border-t border-card-border flex items-center justify-between">
-                    <Link
-                      href={`/desa/${desa.id}`}
-                      className="inline-flex items-center space-x-1.5 text-sm font-semibold text-primary-color group-hover:translate-x-1 transition-transform"
-                    >
-                      <span>Lihat Detail</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
+
+                  {/* Card Content */}
+                  <div className="flex-1 p-6 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold group-hover:text-primary-color transition-colors">
+                        {desa.nama}
+                      </h3>
+                      <p className="text-sm text-muted-text mt-3 line-clamp-3 leading-relaxed">
+                        {desa.profilAbstrak}
+                      </p>
+                    </div>
+                    
+                    <div className="mt-6 pt-4 border-t border-card-border flex items-center justify-between">
+                      <Link
+                        href={`/desa/${desa.id}`}
+                        className="inline-flex items-center space-x-1.5 text-sm font-semibold text-primary-color group-hover:translate-x-1 transition-transform"
+                      >
+                        <span>Lihat Detail & Data</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </div>
           </div>
         </section>
 

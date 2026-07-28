@@ -23,7 +23,6 @@ export default function DaftarDesa() {
   const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKecamatan, setSelectedKecamatan] = useState<string>('all');
-  const [selectedYear, setSelectedYear] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   useEffect(() => {
@@ -39,26 +38,18 @@ export default function DaftarDesa() {
     return kecamatanList.find(k => k.id === id)?.nama || '';
   };
 
-  // Get unique years of pembinaan for filtering
-  const years = useMemo(() => {
-    const allYears = desaList.map(d => d.tahunPembinaan.toString());
-    return ['all', ...Array.from(new Set(allYears)).sort()];
-  }, [desaList]);
-
   // Filter logic
   const filteredDesa = useMemo(() => {
     return desaList.filter(desa => {
       const matchSearch = desa.nama.toLowerCase().includes(searchQuery.toLowerCase());
       const matchKecamatan = selectedKecamatan === 'all' || desa.kecamatanId.toString() === selectedKecamatan;
-      const matchYear = selectedYear === 'all' || desa.tahunPembinaan.toString() === selectedYear;
-      return matchSearch && matchKecamatan && matchYear;
+      return matchSearch && matchKecamatan;
     });
-  }, [desaList, searchQuery, selectedKecamatan, selectedYear]);
+  }, [desaList, searchQuery, selectedKecamatan]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedKecamatan('all');
-    setSelectedYear('all');
   };
 
   return (
@@ -116,25 +107,8 @@ export default function DaftarDesa() {
                 </select>
               </div>
 
-              {/* Filter Tahun */}
-              <div className="flex items-center space-x-1.5 shrink-0 bg-background/50 border border-card-border rounded-xl px-3 py-2 text-sm">
-                <Building className="w-4 h-4 text-primary-color" />
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="bg-transparent border-none outline-none pr-4 text-foreground font-medium cursor-pointer"
-                >
-                  <option value="all" className="bg-background text-foreground">Semua Tahun</option>
-                  {years.filter(y => y !== 'all').map(year => (
-                    <option key={year} value={year} className="bg-background text-foreground">
-                      Binaan {year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Reset Button */}
-              {(searchQuery || selectedKecamatan !== 'all' || selectedYear !== 'all') && (
+              {(searchQuery || selectedKecamatan !== 'all') && (
                 <button
                   onClick={handleResetFilters}
                   className="p-2 rounded-xl text-muted-text hover:text-primary-color hover:bg-foreground/5 transition-all duration-200"
@@ -233,9 +207,6 @@ export default function DaftarDesa() {
                         <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase bg-background/80 border border-card-border backdrop-blur-sm text-primary-color">
                           {getKecamatanName(desa.kecamatanId)}
                         </span>
-                        <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase bg-primary-color/90 text-white backdrop-blur-sm">
-                          Binaan {desa.tahunPembinaan}
-                        </span>
                       </div>
                     </div>
 
@@ -277,7 +248,6 @@ export default function DaftarDesa() {
                       <th className="p-4 w-16 text-center">No</th>
                       <th className="p-4">Nama Desa</th>
                       <th className="p-4">Kecamatan</th>
-                      <th className="p-4">Tahun Pembinaan</th>
                       <th className="p-4 text-center">Detail Data</th>
                     </tr>
                   </thead>
@@ -292,7 +262,6 @@ export default function DaftarDesa() {
                           {desa.nama}
                         </td>
                         <td className="p-4 text-foreground/80">{getKecamatanName(desa.kecamatanId)}</td>
-                        <td className="p-4 font-medium text-foreground/80">Tahun {desa.tahunPembinaan}</td>
                         <td className="p-4 text-center">
                           <Link
                             href={`/desa/${desa.id}`}
