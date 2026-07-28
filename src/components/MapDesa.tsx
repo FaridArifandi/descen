@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import Link from 'next/link';
 import { Desa, Kecamatan } from '@/types';
 import { encodeDesaSlug } from '@/lib/slug';
+import { ArrowRight } from 'lucide-react';
 
 // Custom Marker Icon SVG for Leaflet
 const createCustomIcon = (color: string = '#00d2ff') => {
