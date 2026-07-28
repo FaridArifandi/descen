@@ -13,7 +13,9 @@ import {
   ArrowRight, 
   CheckCircle,
   FileDown,
-  MapPin
+  MapPin,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -48,7 +50,14 @@ export default function Home() {
     loadData();
   }, []);
 
-  const previewDesa = desaList.slice(0, 3);
+  const carouselRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollCarousel = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const scrollAmount = direction === 'left' ? -380 : 380;
+      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   const getKecamatanName = (id: number) => {
     return kecamatanList.find(k => k.id === id)?.nama || '';
@@ -184,34 +193,63 @@ export default function Home() {
           </motion.div>
         </section>
 
-        {/* Preview Daftar Desa Section */}
+        {/* Carousel Desa Binaan Section */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
             <div>
-              <h2 className="text-3xl font-extrabold tracking-tight">
-                Desa Binaan <span className="text-primary-color">Unggulan</span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight uppercase">
+                DESA <span className="bg-gradient-to-r from-primary-color via-secondary-color to-accent-color bg-clip-text text-transparent">BINAAN</span>
               </h2>
               <p className="text-muted-text mt-2 text-sm sm:text-base">
                 Jelajahi profil, publikasi, potensi, dan galeri infografis desa-desa Cantik di Subulussalam.
               </p>
             </div>
-            <Link 
-              href="/daftar-desa"
-              className="inline-flex items-center space-x-1 text-sm font-semibold text-primary-color hover:underline mt-4 md:mt-0"
-            >
-              <span>Lihat semua desa</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+
+            <div className="flex items-center space-x-3 shrink-0">
+              {/* Carousel Navigation Buttons */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => scrollCarousel('left')}
+                  className="p-2.5 rounded-xl glass border border-card-border hover:bg-primary-glow hover:border-primary-color/30 hover:text-primary-color text-foreground transition-all duration-200"
+                  aria-label="Sebelumnya"
+                  title="Sebelumnya"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => scrollCarousel('right')}
+                  className="p-2.5 rounded-xl glass border border-card-border hover:bg-primary-glow hover:border-primary-color/30 hover:text-primary-color text-foreground transition-all duration-200"
+                  aria-label="Selanjutnya"
+                  title="Selanjutnya"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="h-6 w-px bg-card-border" />
+
+              <Link 
+                href="/daftar-desa"
+                className="inline-flex items-center space-x-1 text-sm font-semibold text-primary-color hover:underline"
+              >
+                <span>Lihat semua desa</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {previewDesa.map((desa, idx) => (
+          {/* Carousel Slider Horizontal Container */}
+          <div
+            ref={carouselRef}
+            className="flex space-x-6 overflow-x-auto pb-6 pt-2 snap-x snap-mandatory no-scrollbar scroll-smooth"
+          >
+            {desaList.map((desa, idx) => (
               <motion.div
                 key={desa.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: idx * 0.1 }}
-                className="group flex flex-col rounded-2xl glass overflow-hidden border border-card-border hover:border-primary-color/40 transition-all duration-300"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: idx * 0.05 }}
+                className="group flex flex-col rounded-2xl glass overflow-hidden border border-card-border hover:border-primary-color/40 hover:shadow-[0_8px_32px_rgba(0,210,255,0.08)] transition-all duration-300 w-[300px] sm:w-[360px] shrink-0 snap-start"
               >
                 {/* Photo Header */}
                 <div className="relative h-48 w-full overflow-hidden bg-foreground/5">
@@ -220,11 +258,11 @@ export default function Home() {
                     alt={desa.nama}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-500"
-                    sizes="(max-w-768px) 100vw, 33vw"
+                    sizes="(max-w-768px) 100vw, 360px"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
                   
-                  {/* Kecamatan & Tahun Badge */}
+                  {/* Badges */}
                   <div className="absolute top-4 left-4 flex space-x-2">
                     <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase bg-background/80 border border-card-border backdrop-blur-sm text-primary-color">
                       {getKecamatanName(desa.kecamatanId)}
@@ -241,7 +279,7 @@ export default function Home() {
                     <h3 className="text-xl font-bold group-hover:text-primary-color transition-colors">
                       {desa.nama}
                     </h3>
-                    <p className="text-sm text-muted-text mt-3 line-clamp-3">
+                    <p className="text-sm text-muted-text mt-3 line-clamp-3 leading-relaxed">
                       {desa.profilAbstrak}
                     </p>
                   </div>
