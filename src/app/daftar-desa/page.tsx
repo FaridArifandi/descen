@@ -116,111 +116,146 @@ function DaftarDesaContent() {
           </div>
         </section>
 
-        {/* Search & Filter Toolbar */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="glass rounded-2xl p-4 border border-card-border flex flex-col lg:flex-row gap-4 items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
-            
-            {/* Search Input */}
-            <div className="relative w-full lg:max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-text" />
-              <input
-                type="text"
-                placeholder="Cari nama desa..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-card-border bg-background/50 focus:border-primary-color focus:ring-1 focus:ring-primary-color outline-none transition-all duration-200"
-              />
-            </div>
-
-            {/* Filters Dropdown */}
-            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+        {/* Search & Filter Toolbar (Only shown when mainTab === 'list') */}
+        {mainTab === 'list' && (
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="glass rounded-2xl p-4 border border-card-border flex flex-col lg:flex-row gap-4 items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
               
-              {/* Filter Kecamatan */}
-              <div className="flex items-center space-x-1.5 shrink-0 bg-background/50 border border-card-border rounded-xl px-3 py-2 text-sm">
-                <Filter className="w-4 h-4 text-primary-color" />
-                <select
-                  value={selectedKecamatan}
-                  onChange={(e) => setSelectedKecamatan(e.target.value)}
-                  className="bg-transparent border-none outline-none pr-4 text-foreground font-medium cursor-pointer"
-                >
-                  <option value="all" className="bg-background text-foreground">Semua Kecamatan</option>
-                  {kecamatanList.map(k => (
-                    <option key={k.id} value={k.id.toString()} className="bg-background text-foreground">
-                      {k.nama}
-                    </option>
-                  ))}
-                </select>
+              {/* Search Input */}
+              <div className="relative w-full lg:max-w-md">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-text" />
+                <input
+                  type="text"
+                  placeholder="Cari nama desa..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-card-border bg-background/50 focus:border-primary-color focus:ring-1 focus:ring-primary-color outline-none transition-all duration-200"
+                />
               </div>
 
-              {/* Reset Button */}
-              {(searchQuery || selectedKecamatan !== 'all') && (
-                <button
-                  onClick={handleResetFilters}
-                  className="p-2 rounded-xl text-muted-text hover:text-primary-color hover:bg-foreground/5 transition-all duration-200"
-                  title="Reset Filter"
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </button>
-              )}
+              {/* Filters Dropdown */}
+              <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                
+                {/* Filter Kecamatan */}
+                <div className="flex items-center space-x-1.5 shrink-0 bg-background/50 border border-card-border rounded-xl px-3 py-2 text-sm">
+                  <Filter className="w-4 h-4 text-primary-color" />
+                  <select
+                    value={selectedKecamatan}
+                    onChange={(e) => setSelectedKecamatan(e.target.value)}
+                    className="bg-transparent border-none outline-none pr-4 text-foreground font-medium cursor-pointer"
+                  >
+                    <option value="all" className="bg-background text-foreground">Semua Kecamatan</option>
+                    {kecamatanList.map(k => (
+                      <option key={k.id} value={k.id.toString()} className="bg-background text-foreground">
+                        {k.nama}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Separator & View Toggle (Only shown when mainTab === 'list') */}
-              {mainTab === 'list' && (
-                <>
-                  <div className="hidden sm:block h-8 w-px bg-card-border mx-1" />
+                {/* Reset Button */}
+                {(searchQuery || selectedKecamatan !== 'all') && (
+                  <button
+                    onClick={handleResetFilters}
+                    className="p-2 rounded-xl text-muted-text hover:text-primary-color hover:bg-foreground/5 transition-all duration-200"
+                    title="Reset Filter"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                  </button>
+                )}
 
-                  {/* View Toggle */}
-                  <div className="flex items-center bg-background/50 border border-card-border rounded-xl p-1 shrink-0 ml-auto sm:ml-0">
-                    <button
-                      onClick={() => setViewMode('card')}
-                      className={`p-1.5 rounded-lg transition-all duration-200 ${
-                        viewMode === 'card' 
-                          ? 'bg-primary-color text-white' 
-                          : 'text-muted-text hover:text-foreground'
-                      }`}
-                      title="Card View"
-                    >
-                      <Grid className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('table')}
-                      className={`p-1.5 rounded-lg transition-all duration-200 ${
-                        viewMode === 'table' 
-                          ? 'bg-primary-color text-white' 
-                          : 'text-muted-text hover:text-foreground'
-                      }`}
-                      title="Table View"
-                    >
-                      <List className="w-4 h-4" />
-                    </button>
-                  </div>
-                </>
-              )}
+                <div className="hidden sm:block h-8 w-px bg-card-border mx-1" />
+
+                {/* View Toggle */}
+                <div className="flex items-center bg-background/50 border border-card-border rounded-xl p-1 shrink-0 ml-auto sm:ml-0">
+                  <button
+                    onClick={() => setViewMode('card')}
+                    className={`p-1.5 rounded-lg transition-all duration-200 ${
+                      viewMode === 'card' 
+                        ? 'bg-primary-color text-white' 
+                        : 'text-muted-text hover:text-foreground'
+                    }`}
+                    title="Card View"
+                  >
+                    <Grid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-1.5 rounded-lg transition-all duration-200 ${
+                      viewMode === 'table' 
+                        ? 'bg-primary-color text-white' 
+                        : 'text-muted-text hover:text-foreground'
+                    }`}
+                    title="Table View"
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+
+              </div>
 
             </div>
-
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Content Section: List Desa or Peta Desa */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {mainTab === 'peta' ? (
-            /* TAB PETA DESA */
+            /* TAB PETA DESA - Map Left, List Right, No Search Bar */
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="space-y-4"
+              className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
             >
-              <div className="flex items-center justify-between px-1">
-                <p className="text-xs font-semibold text-muted-text">
-                  Menampilkan <span className="font-bold text-foreground">{filteredDesa.length}</span> lokasi desa binaan pada peta Kota Subulussalam. Klik marker untuk melihat detail.
-                </p>
+              {/* Map (8 columns) */}
+              <div className="lg:col-span-8">
+                <MapDesa
+                  desaList={desaList}
+                  kecamatanList={kecamatanList}
+                  height="550px"
+                />
               </div>
-              <MapDesa
-                desaList={filteredDesa}
-                kecamatanList={kecamatanList}
-                height="580px"
-              />
+
+              {/* Village List Sidebar (4 columns) */}
+              <div className="lg:col-span-4 glass rounded-2xl border border-card-border p-5 h-[550px] flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-card-border">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-primary-color" />
+                      <span>Daftar Lokasi Desa ({desaList.length})</span>
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-muted-text mt-2 leading-relaxed">
+                    Klik tombol detail untuk membuka data & publikasi desa.
+                  </p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-2.5 my-3 pr-1">
+                  {desaList.map(desa => (
+                    <div
+                      key={desa.id}
+                      className="p-3.5 rounded-xl border border-card-border/60 hover:border-primary-color/50 bg-background/50 hover:bg-foreground/5 transition-all duration-200 flex items-center justify-between group"
+                    >
+                      <div>
+                        <h4 className="font-bold text-sm text-foreground group-hover:text-primary-color transition-colors">
+                          {desa.nama}
+                        </h4>
+                        <p className="text-xs text-muted-text mt-0.5">
+                          Kec. {getKecamatanName(desa.kecamatanId)}
+                        </p>
+                      </div>
+                      <Link
+                        href={`/desa/${desa.id}`}
+                        className="p-2 rounded-lg bg-primary-glow border border-primary-color/20 text-primary-color hover:bg-primary-color hover:text-white transition-all shadow-sm shrink-0"
+                        title="Lihat Detail Data"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           ) : filteredDesa.length === 0 ? (
             /* Empty State */
