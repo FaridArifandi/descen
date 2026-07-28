@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -11,19 +13,34 @@ import {
   ArrowRight, 
   Filter, 
   RefreshCw,
-  Building
+  Building,
+  MapPin
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { getDesaList, getKecamatan } from '@/services/database';
 import { Desa, Kecamatan } from '@/types';
 
-export default function DaftarDesa() {
+const MapDesa = dynamic(() => import('@/components/MapDesa'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[550px] rounded-2xl glass flex flex-col items-center justify-center border border-card-border">
+      <div className="w-10 h-10 border-4 border-primary-color border-t-transparent rounded-full animate-spin mb-3" />
+      <p className="text-sm font-semibold text-muted-text">Memuat Peta Interaktif...</p>
+    </div>
+  )
+});
+
+function DaftarDesaContent() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'peta' ? 'peta' : 'list';
+  
   const [desaList, setDesaList] = useState<Desa[]>([]);
   const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKecamatan, setSelectedKecamatan] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [mainTab, setMainTab] = useState<'list' | 'peta'>(initialTab);
 
   useEffect(() => {
     async function loadData() {
@@ -68,6 +85,34 @@ export default function DaftarDesa() {
             <p className="text-muted-text mt-2 text-sm sm:text-base">
               Menampilkan seluruh desa peserta program Desa Cinta Statistik Kota Subulussalam yang sedang dan telah dibina.
             </p>
+          </div>
+        </section>
+
+        {/* Main Tab Switcher (List Desa | Peta Desa) - Above Search Bar */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2">
+          <div className="flex items-center space-x-2 bg-background/80 p-1.5 rounded-2xl border border-card-border w-fit glass shadow-sm">
+            <button
+              onClick={() => setMainTab('list')}
+              className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-extrabold transition-all duration-200 ${
+                mainTab === 'list'
+                  ? 'bg-primary-color text-white shadow-[0_0_15px_var(--primary-glow)]'
+                  : 'text-muted-text hover:text-foreground hover:bg-foreground/5'
+              }`}
+            >
+              <Building className="w-4 h-4" />
+              <span>List Desa</span>
+            </button>
+            <button
+              onClick={() => setMainTab('peta')}
+              className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-extrabold transition-all duration-200 ${
+                mainTab === 'peta'
+                  ? 'bg-primary-color text-white shadow-[0_0_15px_var(--primary-glow)]'
+                  : 'text-muted-text hover:text-foreground hover:bg-foreground/5'
+              }`}
+            >
+              <MapPin className="w-4 h-4" />
+              <span>Peta Desa</span>
+            </button>
           </div>
         </section>
 
@@ -118,43 +163,66 @@ export default function DaftarDesa() {
                 </button>
               )}
 
-              {/* Separator */}
-              <div className="hidden sm:block h-8 w-px bg-card-border mx-1" />
+              {/* Separator & View Toggle (Only shown when mainTab === 'list') */}
+              {mainTab === 'list' && (
+                <>
+                  <div className="hidden sm:block h-8 w-px bg-card-border mx-1" />
 
-              {/* View Toggle */}
-              <div className="flex items-center bg-background/50 border border-card-border rounded-xl p-1 shrink-0 ml-auto sm:ml-0">
-                <button
-                  onClick={() => setViewMode('card')}
-                  className={`p-1.5 rounded-lg transition-all duration-200 ${
-                    viewMode === 'card' 
-                      ? 'bg-primary-color text-white' 
-                      : 'text-muted-text hover:text-foreground'
-                  }`}
-                  title="Card View"
-                >
-                  <Grid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`p-1.5 rounded-lg transition-all duration-200 ${
-                    viewMode === 'table' 
-                      ? 'bg-primary-color text-white' 
-                      : 'text-muted-text hover:text-foreground'
-                  }`}
-                  title="Table View"
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
+                  {/* View Toggle */}
+                  <div className="flex items-center bg-background/50 border border-card-border rounded-xl p-1 shrink-0 ml-auto sm:ml-0">
+                    <button
+                      onClick={() => setViewMode('card')}
+                      className={`p-1.5 rounded-lg transition-all duration-200 ${
+                        viewMode === 'card' 
+                          ? 'bg-primary-color text-white' 
+                          : 'text-muted-text hover:text-foreground'
+                      }`}
+                      title="Card View"
+                    >
+                      <Grid className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('table')}
+                      className={`p-1.5 rounded-lg transition-all duration-200 ${
+                        viewMode === 'table' 
+                          ? 'bg-primary-color text-white' 
+                          : 'text-muted-text hover:text-foreground'
+                      }`}
+                      title="Table View"
+                    >
+                      <List className="w-4 h-4" />
+                    </button>
+                  </div>
+                </>
+              )}
 
             </div>
 
           </div>
         </section>
 
-        {/* Villages List Content */}
+        {/* Content Section: List Desa or Peta Desa */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {filteredDesa.length === 0 ? (
+          {mainTab === 'peta' ? (
+            /* TAB PETA DESA */
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-between px-1">
+                <p className="text-xs font-semibold text-muted-text">
+                  Menampilkan <span className="font-bold text-foreground">{filteredDesa.length}</span> lokasi desa binaan pada peta Kota Subulussalam. Klik marker untuk melihat detail.
+                </p>
+              </div>
+              <MapDesa
+                desaList={filteredDesa}
+                kecamatanList={kecamatanList}
+                height="580px"
+              />
+            </motion.div>
+          ) : filteredDesa.length === 0 ? (
             /* Empty State */
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -283,5 +351,17 @@ export default function DaftarDesa() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function DaftarDesa() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-grid">
+        <div className="w-10 h-10 border-4 border-primary-color border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <DaftarDesaContent />
+    </Suspense>
   );
 }
