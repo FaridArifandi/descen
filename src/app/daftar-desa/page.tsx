@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,33 +15,45 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { mockDesa, mockKecamatan } from '@/data/mockData';
+import { getDesaList, getKecamatan } from '@/services/database';
+import { Desa, Kecamatan } from '@/types';
 
 export default function DaftarDesa() {
+  const [desaList, setDesaList] = useState<Desa[]>([]);
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKecamatan, setSelectedKecamatan] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
+  useEffect(() => {
+    async function loadData() {
+      const [d, k] = await Promise.all([getDesaList(), getKecamatan()]);
+      setDesaList(d);
+      setKecamatanList(k);
+    }
+    loadData();
+  }, []);
+
   const getKecamatanName = (id: number) => {
-    return mockKecamatan.find(k => k.id === id)?.nama || '';
+    return kecamatanList.find(k => k.id === id)?.nama || '';
   };
 
   // Get unique years of pembinaan for filtering
   const years = useMemo(() => {
-    const allYears = mockDesa.map(d => d.tahunPembinaan.toString());
+    const allYears = desaList.map(d => d.tahunPembinaan.toString());
     return ['all', ...Array.from(new Set(allYears)).sort()];
-  }, []);
+  }, [desaList]);
 
   // Filter logic
   const filteredDesa = useMemo(() => {
-    return mockDesa.filter(desa => {
+    return desaList.filter(desa => {
       const matchSearch = desa.nama.toLowerCase().includes(searchQuery.toLowerCase());
       const matchKecamatan = selectedKecamatan === 'all' || desa.kecamatanId.toString() === selectedKecamatan;
       const matchYear = selectedYear === 'all' || desa.tahunPembinaan.toString() === selectedYear;
       return matchSearch && matchKecamatan && matchYear;
     });
-  }, [searchQuery, selectedKecamatan, selectedYear]);
+  }, [desaList, searchQuery, selectedKecamatan, selectedYear]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
@@ -96,7 +108,7 @@ export default function DaftarDesa() {
                   className="bg-transparent border-none outline-none pr-4 text-foreground font-medium cursor-pointer"
                 >
                   <option value="all" className="bg-background text-foreground">Semua Kecamatan</option>
-                  {mockKecamatan.map(k => (
+                  {kecamatanList.map(k => (
                     <option key={k.id} value={k.id.toString()} className="bg-background text-foreground">
                       {k.nama}
                     </option>

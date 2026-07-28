@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -11,18 +12,46 @@ import {
   TrendingUp, 
   ArrowRight, 
   CheckCircle,
-  FileDown
+  FileDown,
+  MapPin
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { mockDesa, mockKecamatan, getDashboardStats } from '@/data/mockData';
+import { getDesaList, getKecamatan, getDashboardStatsFromDb } from '@/services/database';
+import { Desa, Kecamatan } from '@/types';
+
+const MapDesa = dynamic(() => import('@/components/MapDesa'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[400px] rounded-2xl glass flex items-center justify-center border border-card-border">
+      <p className="text-sm font-semibold text-muted-text">Memuat Peta...</p>
+    </div>
+  )
+});
 
 export default function Home() {
-  const stats = getDashboardStats();
-  const previewDesa = mockDesa.slice(0, 3); // Get first 3 for homepage preview
+  const [desaList, setDesaList] = useState<Desa[]>([]);
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
+  const [stats, setStats] = useState({ totalDesa: 0, totalPublikasi: 0, totalInfografis: 0, totalPotensi: 0 });
+
+  useEffect(() => {
+    async function loadData() {
+      const [d, k, s] = await Promise.all([
+        getDesaList(),
+        getKecamatan(),
+        getDashboardStatsFromDb()
+      ]);
+      setDesaList(d);
+      setKecamatanList(k);
+      setStats(s);
+    }
+    loadData();
+  }, []);
+
+  const previewDesa = desaList.slice(0, 3);
 
   const getKecamatanName = (id: number) => {
-    return mockKecamatan.find(k => k.id === id)?.nama || '';
+    return kecamatanList.find(k => k.id === id)?.nama || '';
   };
 
   const containerVariants = {
@@ -230,6 +259,33 @@ export default function Home() {
               </motion.div>
             ))}
           </div>
+        </section>
+
+        {/* Map Preview Section */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8">
+            <div>
+              <h2 className="text-3xl font-extrabold tracking-tight">
+                Peta Sebaran <span className="text-primary-color">Desa Cantik</span>
+              </h2>
+              <p className="text-muted-text mt-2 text-sm sm:text-base">
+                Visualisasi spasial titik lokasi seluruh desa binaan statistik di Kota Subulussalam.
+              </p>
+            </div>
+            <Link 
+              href="/peta"
+              className="inline-flex items-center space-x-1 text-sm font-semibold text-primary-color hover:underline mt-4 md:mt-0"
+            >
+              <span>Buka Peta Penuh</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <MapDesa
+            desaList={desaList}
+            kecamatanList={kecamatanList}
+            height="420px"
+          />
         </section>
       </main>
 

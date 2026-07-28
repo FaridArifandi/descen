@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sun, Moon, Menu, X, BarChart3, Database, ShieldCheck } from 'lucide-react';
+import { Sun, Moon, Menu, X, BarChart3, ShieldCheck } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
@@ -19,6 +20,8 @@ export default function Navbar() {
     { name: 'Beranda', href: '/' },
     { name: 'Tentang Desa Cantik', href: '/tentang' },
     { name: 'Daftar Desa', href: '/daftar-desa' },
+    { name: 'Peta Desa', href: '/peta' },
+    { name: 'Dashboard', href: '/dashboard' },
     { name: 'Publikasi', href: '/publikasi' },
     { name: 'Kontak', href: '/kontak' },
   ];
@@ -28,14 +31,17 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 w-full glass border-b border-card-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo Section */}
-          <div className="flex items-center space-x-3">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="relative flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-primary-color to-secondary-color shadow-[0_0_15px_rgba(0,210,255,0.3)]">
-                <BarChart3 className="w-5 h-5 text-white" />
+          <div className="flex items-center space-x-4">
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="relative flex items-center justify-center w-10 h-10 shrink-0">
+                <Image src="/logo_pemkot.png" alt="Logo Pemkot Subulussalam" width={40} height={40} className="object-contain" />
               </div>
-              <div>
+              <div className="relative flex items-center justify-center w-10 h-10 shrink-0">
+                <Image src="/logo_bps.png" alt="Logo BPS Subulussalam" width={40} height={40} className="object-contain" />
+              </div>
+              <div className="hidden sm:block">
                 <span className="font-extrabold text-lg tracking-wider bg-gradient-to-r from-primary-color to-secondary-color bg-clip-text text-transparent">
                   DESA CANTIK
                 </span>
@@ -47,8 +53,8 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
-            <div className="flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-6">
+            <div className="flex items-center space-x-2">
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
@@ -64,10 +70,8 @@ export default function Navbar() {
               ))}
             </div>
 
-            {/* Separator */}
             <div className="h-6 w-px bg-card-border" />
 
-            {/* Admin Login */}
             <Link
               href={adminHref}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-primary-color/30 text-primary-color bg-primary-glow hover:opacity-80 transition-all"
@@ -76,7 +80,6 @@ export default function Navbar() {
               {user ? 'Dashboard Admin' : 'Login Admin'}
             </Link>
 
-            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-foreground/80 hover:text-primary-color transition-all duration-200"
@@ -91,7 +94,7 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu & Theme Button */}
-          <div className="md:hidden flex items-center space-x-3">
+          <div className="lg:hidden flex items-center space-x-3">
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg bg-foreground/5 text-foreground/85 transition-all duration-200"
@@ -110,7 +113,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden glass border-b border-card-border py-4 px-2 space-y-1">
+        <div className="lg:hidden glass border-b border-card-border py-4 px-2 space-y-1">
           {navLinks.map((link) => (
             <Link
               key={link.name}

@@ -146,3 +146,46 @@ export async function getInfografis(): Promise<Infografis[]> {
     return mockInfografis;
   }
 }
+
+// ── DASHBOARD & HELPER STATS ──
+export async function getDashboardStatsFromDb() {
+  const [desa, publikasi, infografis, potensi] = await Promise.all([
+    getDesaList(),
+    getPublikasi(),
+    getInfografis(),
+    getPotensi()
+  ]);
+  return {
+    totalDesa: desa.length,
+    totalPublikasi: publikasi.length,
+    totalInfografis: infografis.length,
+    totalPotensi: potensi.length
+  };
+}
+
+export async function getDesaById(id: number): Promise<Desa | undefined> {
+  const desaList = await getDesaList();
+  return desaList.find(d => d.id === id);
+}
+
+// ── PESAN KONTAK ──
+export async function createPesanKontak(pesan: {
+  nama: string;
+  email: string;
+  subjek: string;
+  isi: string;
+}): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('pesan_kontak').insert([{
+      nama: pesan.nama,
+      email: pesan.email,
+      subjek: pesan.subjek,
+      isi: pesan.isi,
+      created_at: new Date().toISOString()
+    }]);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+

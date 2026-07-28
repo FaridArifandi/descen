@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -10,23 +10,35 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { mockPublikasi, mockDesa } from '@/data/mockData';
+import { getPublikasi, getDesaList } from '@/services/database';
+import { Publikasi, Desa } from '@/types';
 
 export default function PublikasiPage() {
+  const [publikasiList, setPublikasiList] = useState<Publikasi[]>([]);
+  const [desaList, setDesaList] = useState<Desa[]>([]);
   const [search, setSearch] = useState('');
   const [filterDesa, setFilterDesa] = useState('all');
   const [filterTahun, setFilterTahun] = useState('all');
 
-  const getDesaNama = (desaId: number) =>
-    mockDesa.find(d => d.id === desaId)?.nama || '-';
-
-  const tahunList = useMemo(() => {
-    const years = [...new Set(mockPublikasi.map(p => p.tahun))].sort((a, b) => b - a);
-    return years;
+  useEffect(() => {
+    async function loadData() {
+      const [p, d] = await Promise.all([getPublikasi(), getDesaList()]);
+      setPublikasiList(p);
+      setDesaList(d);
+    }
+    loadData();
   }, []);
 
+  const getDesaNama = (desaId: number) =>
+    desaList.find(d => d.id === desaId)?.nama || '-';
+
+  const tahunList = useMemo(() => {
+    const years = [...new Set(publikasiList.map(p => p.tahun))].sort((a, b) => b - a);
+    return years;
+  }, [publikasiList]);
+
   const filtered = useMemo(() => {
-    return mockPublikasi.filter(p => {
+    return publikasiList.filter(p => {
       const matchSearch =
         p.judul.toLowerCase().includes(search.toLowerCase()) ||
         getDesaNama(p.desaId).toLowerCase().includes(search.toLowerCase());
@@ -34,7 +46,7 @@ export default function PublikasiPage() {
       const matchTahun = filterTahun === 'all' || p.tahun.toString() === filterTahun;
       return matchSearch && matchDesa && matchTahun;
     });
-  }, [search, filterDesa, filterTahun]);
+  }, [publikasiList, desaList, search, filterDesa, filterTahun]);
 
   const handleReset = () => {
     setSearch('');
@@ -111,7 +123,7 @@ export default function PublikasiPage() {
                 className="pl-9 pr-8 py-2.5 rounded-xl glass border border-card-border focus:border-primary-color outline-none text-sm text-foreground bg-background/80 appearance-none cursor-pointer min-w-[160px] transition-all"
               >
                 <option value="all">Semua Desa</option>
-                {mockDesa.map(d => (
+                {desaList.map(d => (
                   <option key={d.id} value={d.id.toString()}>{d.nama}</option>
                 ))}
               </select>
@@ -148,7 +160,7 @@ export default function PublikasiPage() {
           {/* Count */}
           <p className="text-xs text-muted-text mt-3">
             Menampilkan <span className="font-bold text-foreground">{filtered.length}</span> dari{' '}
-            <span className="font-bold text-foreground">{mockPublikasi.length}</span> publikasi
+            <span className="font-bold text-foreground">{publikasiList.length}</span> publikasi
           </p>
         </section>
 

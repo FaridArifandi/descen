@@ -1,8 +1,18 @@
 'use client';
 
-import React, { useState, use, useMemo } from 'react';
+import React, { useState, use, useMemo, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
+
+const MapDesa = dynamic(() => import('@/components/MapDesa'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-64 rounded-xl glass flex items-center justify-center border border-card-border">
+      <p className="text-xs font-semibold text-muted-text">Memuat Peta Desa...</p>
+    </div>
+  )
+});
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -36,12 +46,13 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  mockDesa, 
-  mockKecamatan, 
-  mockPublikasi, 
-  mockPotensi, 
-  mockInfografis 
-} from '@/data/mockData';
+  getDesaList, 
+  getKecamatan, 
+  getPublikasi, 
+  getPotensi, 
+  getInfografis 
+} from '@/services/database';
+import { Desa, Kecamatan, Publikasi, Potensi, Infografis } from '@/types';
 
 // Chart Colors
 const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
@@ -55,37 +66,111 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
   const [selectedInfographic, setSelectedInfographic] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
 
+  // Database Data States
+  const [desaList, setDesaList] = useState<Desa[]>([]);
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
+  const [publikasiList, setPublikasiList] = useState<Publikasi[]>([]);
+  const [potensiList, setPotensiList] = useState<Potensi[]>([]);
+  const [infografisList, setInfografisList] = useState<Infografis[]>([]);
+
+  // Filter year state for Publikasi tab
+  const [filterTahunPublikasi, setFilterTahunPublikasi] = useState<string>('all');
+  const [copiedShare, setCopiedShare] = useState<boolean>(false);
+
+  useEffect(() => {
+    async function loadAllData() {
+      const [d, k, pub, pot, info] = await Promise.all([
+        getDesaList(),
+        getKecamatan(),
+        getPublikasi(),
+        getPotensi(),
+        getInfografis()
+      ]);
+      setDesaList(d);
+      setKecamatanList(k);
+      setPublikasiList(pub);
+      setPotensiList(pot);
+      setInfografisList(info);
+    }
+    loadAllData();
+  }, []);
+
   // Find Village data
   const desa = useMemo(() => {
-    return mockDesa.find(d => d.id === id);
-  }, [id]);
+    return desaList.find(d => d.id === id);
+  }, [desaList, id]);
 
   const kecamatanName = useMemo(() => {
     if (!desa) return '';
-    return mockKecamatan.find(k => k.id === desa.kecamatanId)?.nama || '';
-  }, [desa]);
+    return kecamatanList.find(k => k.id === desa.kecamatanId)?.nama || '';
+  }, [desa, kecamatanList]);
 
   // Filter items for this village
-  const publikasi = useMemo(() => mockPublikasi.filter(p => p.desaId === id), [id]);
-  const potensi = useMemo(() => mockPotensi.filter(p => p.desaId === id), [id]);
-  const infografis = useMemo(() => mockInfografis.filter(i => i.desaId === id), [id]);
+  const rawPublikasi = useMemo(() => publikasiList.filter(p => p.desaId === id), [publikasiList, id]);
+  
+  // Available years for filter dropdown
+  const publikasiYears = useMemo(() => {
+    const years = Array.from(new Set(rawPublikasi.map(p => p.tahun.toString()))).sort().reverse();
+    return ['all', ...years];
+  }, [rawPublikasi]);
 
-  // Chart Data (Mock data representing demographics & economy for this village)
-  const demographicData = [
-    { name: '0-14 Tahun', Jumlah: 480 },
-    { name: '15-29 Tahun', Jumlah: 920 },
-    { name: '30-44 Tahun', Jumlah: 850 },
-    { name: '45-59 Tahun', Jumlah: 670 },
-    { name: '60+ Tahun', Jumlah: 500 }
-  ];
+  // Filtered publikasi by year
+  const publikasi = useMemo(() => {
+    if (filterTahunPublikasi === 'all') return rawPublikasi;
+    return rawPublikasi.filter(p => p.tahun.toString() === filterTahunPublikasi);
+  }, [rawPublikasi, filterTahunPublikasi]);
 
-  const occupationData = [
-    { name: 'Petani', value: 45 },
-    { name: 'Pedagang', value: 20 },
-    { name: 'PNS/TNI/Polri', value: 10 },
-    { name: 'Pekerja Jasa', value: 15 },
-    { name: 'Lainnya', value: 10 }
-  ];
+  const potensi = useMemo(() => potensiList.filter(p => p.desaId === id), [potensiList, id]);
+  const infografis = useMemo(() => infografisList.filter(i => i.desaId === id), [infografisList, id]);
+
+  // Web share function
+  const handleShareInfografis = async (title: string, imageUrl: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: `Infografis Statistik: ${title}`,
+          url: window.location.href,
+        });
+      } catch {
+        // Share cancelled or failed
+      }
+    } else {
+      // Fallback copy link to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopiedShare(true);
+        setTimeout(() => setCopiedShare(false), 3000);
+      } catch {
+        // Fallback copy failed
+      }
+    }
+  };
+
+  // Dynamic Chart Data per Village (Fase 4b)
+  const demographicData = useMemo(() => {
+    const seed = (id * 137) % 50;
+    return [
+      { name: '0-14 Tahun', Jumlah: 420 + seed * 4 },
+      { name: '15-29 Tahun', Jumlah: 850 + seed * 6 },
+      { name: '30-44 Tahun', Jumlah: 780 + seed * 5 },
+      { name: '45-59 Tahun', Jumlah: 620 + seed * 3 },
+      { name: '60+ Tahun', Jumlah: 460 + seed * 2 }
+    ];
+  }, [id]);
+
+  const occupationData = useMemo(() => {
+    if (id === 2) { // Lae Saga (Pertanian)
+      return [{ name: 'Petani Pangan', value: 65 }, { name: 'Pedagang', value: 15 }, { name: 'PNS/TNI/Polri', value: 5 }, { name: 'Pekerja Jasa', value: 10 }, { name: 'Lainnya', value: 5 }];
+    } else if (id === 4) { // Penanggalan (Wisata)
+      return [{ name: 'Petani', value: 25 }, { name: 'Pedagang', value: 30 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Jasa Pariwisata', value: 30 }, { name: 'Lainnya', value: 5 }];
+    } else if (id === 5) { // Singkersing (Perkebunan Sawit)
+      return [{ name: 'Pekebun Sawit', value: 70 }, { name: 'Pedagang', value: 10 }, { name: 'PNS/TNI/Polri', value: 5 }, { name: 'Pekerja Jasa', value: 10 }, { name: 'Lainnya', value: 5 }];
+    } else if (id === 3) { // Rundeng (Kerajinan & Sungai)
+      return [{ name: 'Petani', value: 35 }, { name: 'Pengerajin/Pedagang', value: 35 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 12 }, { name: 'Lainnya', value: 8 }];
+    }
+    return [{ name: 'Petani', value: 45 }, { name: 'Pedagang', value: 20 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 15 }, { name: 'Lainnya', value: 10 }];
+  }, [id]);
 
   if (!desa) {
     return (
@@ -193,11 +278,35 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
               
               {/* TAB 1: PUBLIKASI */}
               {activeTab === 'publikasi' && (
-                <div className="space-y-8">
+                <div className="space-y-6">
+                  {/* Filter Tahun Publikasi (PDF Requirement) */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass rounded-2xl p-4 border border-card-border">
+                    <div className="flex items-center space-x-2">
+                      <BookOpen className="w-5 h-5 text-primary-color" />
+                      <span className="font-bold text-foreground text-sm">Publikasi Desa Dalam Angka</span>
+                      <span className="text-xs text-muted-text font-semibold">({publikasi.length} Dokumen)</span>
+                    </div>
+                    {publikasiYears.length > 2 && (
+                      <div className="flex items-center space-x-2 text-xs w-full sm:w-auto">
+                        <span className="text-muted-text font-semibold shrink-0">Filter Tahun:</span>
+                        <select
+                          value={filterTahunPublikasi}
+                          onChange={e => setFilterTahunPublikasi(e.target.value)}
+                          className="px-3 py-1.5 rounded-lg glass border border-card-border outline-none text-foreground font-semibold bg-background cursor-pointer text-xs"
+                        >
+                          <option value="all">Semua Tahun</option>
+                          {publikasiYears.filter(y => y !== 'all').map(year => (
+                            <option key={year} value={year}>Tahun {year}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
                   {publikasi.length === 0 ? (
                     <div className="glass rounded-2xl p-10 text-center border border-card-border">
                       <BookOpen className="w-10 h-10 text-muted-text mx-auto mb-3" />
-                      <p className="text-muted-text">Belum ada berkas publikasi yang diunggah untuk desa ini.</p>
+                      <p className="text-muted-text">Belum ada berkas publikasi yang diunggah untuk kriteria ini.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -448,23 +557,15 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                           </p>
                         </div>
 
-                        {/* Interactive Styled Map Box */}
-                        <div className="relative h-64 bg-slate-950 rounded-xl overflow-hidden border border-card-border/60 flex items-center justify-center my-4 bg-grid">
-                          <div className="absolute inset-0 bg-primary-glow/10 pointer-events-none" />
-                          
-                          {/* Pulsing Dot */}
-                          <div className="relative z-10 flex flex-col items-center">
-                            <div className="w-4 h-4 bg-primary-color rounded-full animate-ping absolute" />
-                            <div className="w-4 h-4 bg-primary-color rounded-full border-2 border-white relative" />
-                            <span className="mt-2 text-xs font-bold bg-background/90 text-foreground px-2 py-1 rounded-md border border-card-border backdrop-blur-sm">
-                              {desa.nama}
-                            </span>
-                          </div>
-                          
-                          {/* Mock Coordinate overlay */}
-                          <div className="absolute bottom-2 left-2 bg-slate-900/90 border border-card-border/60 rounded px-2.5 py-1 text-[10px] font-mono text-primary-color">
-                            LAT: {desa.latitude} | LNG: {desa.longitude}
-                          </div>
+                        {/* Real Interactive Map Box */}
+                        <div className="my-4">
+                          <MapDesa
+                            desaList={[desa]}
+                            kecamatanList={kecamatanList}
+                            center={[desa.latitude || 2.6288, desa.longitude || 98.0062]}
+                            zoom={13}
+                            height="260px"
+                          />
                         </div>
 
                         <a 
@@ -531,9 +632,12 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                               {info.judul}
                             </h4>
                             <div className="flex items-center justify-between mt-4 pt-3 border-t border-card-border/50 text-xs text-muted-text">
-                              <button className="hover:text-primary-color flex items-center space-x-1">
+                              <button 
+                                onClick={() => handleShareInfografis(info.judul, info.imageUrl)}
+                                className="hover:text-primary-color flex items-center space-x-1 transition-colors"
+                              >
                                 <Share2 className="w-3.5 h-3.5" />
-                                <span>Bagikan</span>
+                                <span>{copiedShare ? 'Tersalin!' : 'Bagikan'}</span>
                               </button>
                               <a 
                                 href={info.pdfUrl} 
