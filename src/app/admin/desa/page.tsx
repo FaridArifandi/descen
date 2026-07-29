@@ -82,30 +82,19 @@ function DesaProfilForm({
           />
         </Field>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Kecamatan" required>
-            <select
-              className={inputCls}
-              value={form.kecamatanId}
-              onChange={(e) => set('kecamatanId', Number(e.target.value))}
-            >
-              {kecamatanList.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.nama}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Tahun Pembinaan Desa (Diatur BPS)">
-            <input
-              type="number"
-              className={inputCls + " opacity-60 cursor-not-allowed bg-foreground/5"}
-              value={desa.tahunPembinaan}
-              disabled
-              readOnly
-            />
-          </Field>
-        </div>
+        <Field label="Kecamatan" required>
+          <select
+            className={inputCls}
+            value={form.kecamatanId}
+            onChange={(e) => set('kecamatanId', Number(e.target.value))}
+          >
+            {kecamatanList.map((k) => (
+              <option key={k.id} value={k.id}>
+                {k.nama}
+              </option>
+            ))}
+          </select>
+        </Field>
 
         {/* Media Cover */}
         <FileUploadInput
