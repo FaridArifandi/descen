@@ -39,6 +39,9 @@ import {
 import { Desa, Kecamatan, Publikasi, Potensi, Infografis } from '@/types';
 import { encodeDesaSlug } from '@/lib/slug';
 
+import { getAllDesa, getAllPublikasi, getAllPotensi, getAllInfografis, getKecamatanAll } from '@/data/adminStore';
+import { mockDesa, mockKecamatan, mockPublikasi, mockPotensi, mockInfografis } from '@/data/mockData';
+
 const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
 
 export default function DashboardPage() {
@@ -51,20 +54,51 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadData() {
-      const [d, k, pub, pot, info, st] = await Promise.all([
-        getDesaList(),
-        getKecamatan(),
-        getPublikasi(),
-        getPotensi(),
-        getInfografis(),
-        getDashboardStatsFromDb()
-      ]);
-      setDesaList(d);
-      setKecamatanList(k);
-      setPublikasiList(pub);
-      setPotensiList(pot);
-      setInfografisList(info);
-      setStats(st);
+      try {
+        const [d, k, pub, pot, info] = await Promise.all([
+          getDesaList(),
+          getKecamatan(),
+          getPublikasi(),
+          getPotensi(),
+          getInfografis()
+        ]);
+        const desa = d && d.length > 0 ? d : (getAllDesa().length > 0 ? getAllDesa() : mockDesa);
+        const kec = k && k.length > 0 ? k : (getKecamatanAll().length > 0 ? getKecamatanAll() : mockKecamatan);
+        const publikasi = pub && pub.length > 0 ? pub : (getAllPublikasi().length > 0 ? getAllPublikasi() : mockPublikasi);
+        const potensi = pot && pot.length > 0 ? pot : (getAllPotensi().length > 0 ? getAllPotensi() : mockPotensi);
+        const infografis = info && info.length > 0 ? info : (getAllInfografis().length > 0 ? getAllInfografis() : mockInfografis);
+
+        setDesaList(desa);
+        setKecamatanList(kec);
+        setPublikasiList(publikasi);
+        setPotensiList(potensi);
+        setInfografisList(infografis);
+        setStats({
+          totalDesa: desa.length,
+          totalPublikasi: publikasi.length,
+          totalInfografis: infografis.length,
+          totalPotensi: potensi.length
+        });
+      } catch (err) {
+        console.error('Error loading dashboard data:', err);
+        const desa = getAllDesa().length > 0 ? getAllDesa() : mockDesa;
+        const kec = getKecamatanAll().length > 0 ? getKecamatanAll() : mockKecamatan;
+        const publikasi = getAllPublikasi().length > 0 ? getAllPublikasi() : mockPublikasi;
+        const potensi = getAllPotensi().length > 0 ? getAllPotensi() : mockPotensi;
+        const infografis = getAllInfografis().length > 0 ? getAllInfografis() : mockInfografis;
+
+        setDesaList(desa);
+        setKecamatanList(kec);
+        setPublikasiList(publikasi);
+        setPotensiList(potensi);
+        setInfografisList(infografis);
+        setStats({
+          totalDesa: desa.length,
+          totalPublikasi: publikasi.length,
+          totalInfografis: infografis.length,
+          totalPotensi: potensi.length
+        });
+      }
     }
     loadData();
   }, []);
@@ -77,9 +111,9 @@ export default function DashboardPage() {
 
   // Breakdown potensi per kategori
   const potensiCategoryData = [
-    { name: 'Ekonomi & UMKM', value: potensiList.filter(p => p.kategori === 'ekonomi').length || 2 },
-    { name: 'Wisata & Alam', value: potensiList.filter(p => p.kategori === 'wisata').length || 2 },
-    { name: 'Investasi & Produk', value: potensiList.filter(p => p.kategori === 'investasi').length || 1 }
+    { name: 'Ekonomi & UMKM', value: potensiList.filter(p => p.kategori === 'ekonomi').length },
+    { name: 'Wisata & Alam', value: potensiList.filter(p => p.kategori === 'wisata').length },
+    { name: 'Investasi & Produk', value: potensiList.filter(p => p.kategori === 'investasi').length }
   ];
 
   return (

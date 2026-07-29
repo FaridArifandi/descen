@@ -1,18 +1,23 @@
 import { supabase } from '@/lib/supabase';
 import { Kecamatan, Desa, Publikasi, Potensi, Infografis } from '@/types';
 import { mockKecamatan, mockDesa, mockPublikasi, mockPotensi, mockInfografis } from '@/data/mockData';
+import { getAllDesa, getAllPublikasi, getAllPotensi, getAllInfografis, getKecamatanAll } from '@/data/adminStore';
 
 // ── KECAMATAN ──
 export async function getKecamatan(): Promise<Kecamatan[]> {
   try {
     const { data, error } = await supabase.from('kecamatan').select('*').order('id', { ascending: true });
-    if (error || !data || data.length === 0) return mockKecamatan;
+    if (error || !data || data.length === 0) {
+      const local = getKecamatanAll();
+      return local.length > 0 ? local : mockKecamatan;
+    }
     return data.map(item => ({
       id: item.id,
       nama: item.nama,
     }));
   } catch {
-    return mockKecamatan;
+    const local = getKecamatanAll();
+    return local.length > 0 ? local : mockKecamatan;
   }
 }
 
@@ -20,7 +25,10 @@ export async function getKecamatan(): Promise<Kecamatan[]> {
 export async function getDesaList(): Promise<Desa[]> {
   try {
     const { data, error } = await supabase.from('desa').select('*').order('id', { ascending: true });
-    if (error || !data || data.length === 0) return mockDesa;
+    if (error || !data || data.length === 0) {
+      const local = getAllDesa();
+      return local.length > 0 ? local : mockDesa;
+    }
     return data.map(d => ({
       id: d.id,
       nama: d.nama,
@@ -35,7 +43,8 @@ export async function getDesaList(): Promise<Desa[]> {
       longitude: Number(d.longitude) || 0,
     }));
   } catch {
-    return mockDesa;
+    const local = getAllDesa();
+    return local.length > 0 ? local : mockDesa;
   }
 }
 
@@ -96,7 +105,10 @@ export async function deleteDesa(id: number): Promise<boolean> {
 export async function getPublikasi(): Promise<Publikasi[]> {
   try {
     const { data, error } = await supabase.from('publikasi').select('*').order('id', { ascending: true });
-    if (error || !data || data.length === 0) return mockPublikasi;
+    if (error || !data || data.length === 0) {
+      const local = getAllPublikasi();
+      return local.length > 0 ? local : mockPublikasi;
+    }
     return data.map(p => ({
       id: p.id,
       desaId: p.desa_id,
@@ -107,7 +119,8 @@ export async function getPublikasi(): Promise<Publikasi[]> {
       pdfUrl: p.pdf_url || '#',
     }));
   } catch {
-    return mockPublikasi;
+    const local = getAllPublikasi();
+    return local.length > 0 ? local : mockPublikasi;
   }
 }
 
@@ -115,7 +128,10 @@ export async function getPublikasi(): Promise<Publikasi[]> {
 export async function getPotensi(): Promise<Potensi[]> {
   try {
     const { data, error } = await supabase.from('potensi').select('*').order('id', { ascending: true });
-    if (error || !data || data.length === 0) return mockPotensi;
+    if (error || !data || data.length === 0) {
+      const local = getAllPotensi();
+      return local.length > 0 ? local : mockPotensi;
+    }
     return data.map(pt => ({
       id: pt.id,
       desaId: pt.desa_id,
@@ -126,7 +142,8 @@ export async function getPotensi(): Promise<Potensi[]> {
       fotoUrl: pt.foto_url || '',
     }));
   } catch {
-    return mockPotensi;
+    const local = getAllPotensi();
+    return local.length > 0 ? local : mockPotensi;
   }
 }
 
@@ -134,7 +151,10 @@ export async function getPotensi(): Promise<Potensi[]> {
 export async function getInfografis(): Promise<Infografis[]> {
   try {
     const { data, error } = await supabase.from('infografis').select('*').order('id', { ascending: true });
-    if (error || !data || data.length === 0) return mockInfografis;
+    if (error || !data || data.length === 0) {
+      const local = getAllInfografis();
+      return local.length > 0 ? local : mockInfografis;
+    }
     return data.map(ig => ({
       id: ig.id,
       desaId: ig.desa_id,
@@ -143,7 +163,8 @@ export async function getInfografis(): Promise<Infografis[]> {
       pdfUrl: '#',
     }));
   } catch {
-    return mockInfografis;
+    const local = getAllInfografis();
+    return local.length > 0 ? local : mockInfografis;
   }
 }
 
