@@ -6,21 +6,22 @@ import { motion } from 'framer-motion';
 import {
   BookOpen, FileImage, TrendingUp,
   Plus, Pencil, Trash2, LogOut, Building2,
-  Search, AlertTriangle, Info
+  Search, AlertTriangle, Info, MapPin
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import AdminModal from '@/components/AdminModal';
+import LocationPickerModal from '@/components/LocationPickerModal';
 import {
   getAllPublikasi, createPublikasi, updatePublikasi, deletePublikasi,
   getAllPotensi, createPotensi, updatePotensi, deletePotensi,
   getAllInfografis, createInfografis, updateInfografis, deleteInfografis,
-  getAllDesa,
+  getAllDesa, updateDesa,
 } from '@/data/adminStore';
 import { Desa, Publikasi, Potensi, Infografis } from '@/types';
 
 import FileUploadInput from '@/components/FileUploadInput';
 
-type Tab = 'publikasi' | 'potensi' | 'infografis';
+type Tab = 'profil' | 'publikasi' | 'potensi' | 'infografis';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
@@ -35,6 +36,129 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 const inputCls = "w-full px-3 py-2.5 rounded-xl bg-background border border-card-border focus:border-primary-color focus:ring-2 focus:ring-primary-color/20 outline-none transition-all text-foreground text-sm placeholder:text-muted-text";
 const textareaCls = inputCls + " resize-none";
+
+// ===== PROFIL & LOKASI DESA FORM =====
+function DesaProfilForm({
+  desa,
+  onSave,
+}: {
+  desa: Desa;
+  onSave: (data: Partial<Desa>) => void;
+}) {
+  const [form, setForm] = useState({
+    fotoCover: desa.fotoCover || '',
+    profilAbstrak: desa.profilAbstrak || '',
+    monografiAbstrak: desa.monografiAbstrak || '',
+    latitude: desa.latitude || 0,
+    longitude: desa.longitude || 0,
+  });
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
+  const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
+
+  return (
+    <div className="glass rounded-2xl border border-card-border p-6 space-y-6">
+      <div className="flex items-center justify-between pb-4 border-b border-card-border">
+        <div>
+          <h2 className="text-base font-bold text-foreground">Profil & Titik Lokasi {desa.nama}</h2>
+          <p className="text-xs text-muted-text">Kelola foto cover, deskripsi profil, dan lokasi koordinat peta desa Anda.</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <FileUploadInput
+          label="Foto Cover Desa"
+          value={form.fotoCover}
+          onChange={(url) => set('fotoCover', url)}
+          accept="image"
+          bucket="media_desa"
+          placeholder="Upload foto cover desa atau masukan URL https://..."
+        />
+
+        <Field label="Abstrak Profil Desa">
+          <textarea
+            className={textareaCls}
+            rows={4}
+            value={form.profilAbstrak}
+            onChange={(e) => set('profilAbstrak', e.target.value)}
+          />
+        </Field>
+
+        <Field label="Abstrak Monografi Desa">
+          <textarea
+            className={textareaCls}
+            rows={3}
+            value={form.monografiAbstrak}
+            onChange={(e) => set('monografiAbstrak', e.target.value)}
+          />
+        </Field>
+
+        {/* Titik Lokasi Peta */}
+        <div className="p-4 rounded-2xl bg-primary-glow/30 border border-primary-color/20 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <label className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-primary-color" />
+                Titik Lokasi Koordinat (Peta Interaktif)
+              </label>
+              <p className="text-xs text-muted-text mt-0.5">
+                Pilih atau cari lokasi desa di peta seperti menggunakan aplikasi Grab / Gmaps.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMapPickerOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-primary-color text-white text-xs font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)] shrink-0"
+            >
+              <MapPin className="w-4 h-4" />
+              Pilih / Ubah di Peta
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <Field label="Latitude">
+              <input
+                type="number"
+                step="any"
+                className={inputCls}
+                value={form.latitude}
+                onChange={(e) => set('latitude', Number(e.target.value))}
+              />
+            </Field>
+            <Field label="Longitude">
+              <input
+                type="number"
+                step="any"
+                className={inputCls}
+                value={form.longitude}
+                onChange={(e) => set('longitude', Number(e.target.value))}
+              />
+            </Field>
+          </div>
+        </div>
+      </div>
+
+      <LocationPickerModal
+        isOpen={isMapPickerOpen}
+        onClose={() => setIsMapPickerOpen(false)}
+        initialLat={form.latitude}
+        initialLng={form.longitude}
+        onConfirm={(lat, lng) => {
+          setForm((f) => ({ ...f, latitude: lat, longitude: lng }));
+        }}
+      />
+
+      <div className="pt-2 flex justify-end">
+        <button
+          type="button"
+          onClick={() => onSave(form)}
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)]"
+        >
+          Simpan Perubahan Profil & Lokasi
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ===== PUBLIKASI FORM =====
 function PublikasiForm({ initial, desaId, onSave, onCancel }: { initial?: Partial<Publikasi>; desaId: number; onSave: (d: Omit<Publikasi, 'id'>) => void; onCancel: () => void }) {
@@ -209,7 +333,7 @@ export default function AdminDesaPage() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<Tab>('publikasi');
+  const [activeTab, setActiveTab] = useState<Tab>('profil');
   const [search, setSearch] = useState('');
   const [desaInfo, setDesaInfo] = useState<Desa | null>(null);
   const [publikasi, setPublikasi] = useState<Publikasi[]>([]);
@@ -224,6 +348,9 @@ export default function AdminDesaPage() {
   };
 
   const refresh = useCallback((desaId: number) => {
+    const allDesa = getAllDesa();
+    const d = allDesa.find(x => x.id === desaId) || null;
+    setDesaInfo(d);
     setPublikasi(getAllPublikasi(desaId));
     setPotensi(getAllPotensi(desaId));
     setInfografis(getAllInfografis(desaId));
@@ -233,9 +360,6 @@ export default function AdminDesaPage() {
     if (!isLoading && (!user || user.role !== 'desa')) {
       router.replace('/login');
     } else if (user?.desaId) {
-      const allDesa = getAllDesa();
-      const d = allDesa.find(x => x.id === user.desaId) || null;
-      setDesaInfo(d);
       refresh(user.desaId);
     }
   }, [user, isLoading, router, refresh]);
@@ -248,7 +372,8 @@ export default function AdminDesaPage() {
   const filteredPotensi = potensi.filter(p => p.nama.toLowerCase().includes(q));
   const filteredInfografis = infografis.filter(i => i.judul.toLowerCase().includes(q));
 
-  const tabs: { key: Tab; label: string; icon: React.ReactNode; count: number }[] = [
+  const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
+    { key: 'profil', label: 'Profil & Lokasi Desa', icon: <MapPin className="w-4 h-4" /> },
     { key: 'publikasi', label: 'Publikasi Desa', icon: <BookOpen className="w-4 h-4" />, count: publikasi.length },
     { key: 'potensi', label: 'Potensi', icon: <TrendingUp className="w-4 h-4" />, count: potensi.length },
     { key: 'infografis', label: 'Infografis', icon: <FileImage className="w-4 h-4" />, count: infografis.length },
@@ -293,7 +418,7 @@ export default function AdminDesaPage() {
           <Info className="w-4 h-4 text-primary-color mt-0.5 shrink-0" />
           <p className="text-xs text-foreground/80">
             Anda login sebagai admin <span className="font-bold text-primary-color">{desaInfo.nama}</span>.
-            Anda hanya dapat mengelola konten desa Anda sendiri (Publikasi, Potensi, dan Infografis).
+            Anda dapat mengelola Profil, Lokasi Peta, Publikasi, Potensi, dan Infografis desa Anda.
           </p>
         </div>
 
@@ -311,131 +436,149 @@ export default function AdminDesaPage() {
             >
               {t.icon}
               {t.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${activeTab === t.key ? 'bg-white/20' : 'bg-foreground/10'}`}>
-                {t.count}
-              </span>
+              {t.count !== undefined && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${activeTab === t.key ? 'bg-white/20' : 'bg-foreground/10'}`}>
+                  {t.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        {/* Search + Add */}
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Cari data..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-background border border-card-border focus:border-primary-color focus:ring-2 focus:ring-primary-color/20 outline-none text-sm text-foreground placeholder:text-muted-text transition-all"
-            />
+        {/* Tab Content: PROFIL & LOKASI DESA */}
+        {activeTab === 'profil' && (
+          <DesaProfilForm
+            desa={desaInfo}
+            onSave={(updatedData) => {
+              updateDesa(desaInfo.id, updatedData);
+              refresh(desaId);
+              showToast('Profil & Lokasi desa berhasil disimpan!');
+            }}
+          />
+        )}
+
+        {/* Search + Add Bar for other tabs */}
+        {activeTab !== 'profil' && (
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Cari data..."
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-background border border-card-border focus:border-primary-color focus:ring-2 focus:ring-primary-color/20 outline-none text-sm text-foreground placeholder:text-muted-text transition-all"
+              />
+            </div>
+            <button
+              onClick={() => setModal({ type: `add_${activeTab}` })}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)] whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              Tambah
+            </button>
           </div>
-          <button
-            onClick={() => setModal({ type: `add_${activeTab}` })}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)] whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" />
-            Tambah
-          </button>
-        </div>
+        )}
 
-        {/* Table */}
-        <div className="glass rounded-2xl border border-card-border overflow-hidden">
-          {/* PUBLIKASI */}
-          {activeTab === 'publikasi' && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-card-border text-left text-xs text-muted-text uppercase tracking-wider">
-                    <th className="px-4 py-3">Judul Publikasi</th>
-                    <th className="px-4 py-3">Tahun</th>
-                    <th className="px-4 py-3 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPub.map((p, i) => (
-                    <tr key={p.id} className={`border-b border-card-border hover:bg-foreground/3 transition-colors ${i % 2 ? 'bg-foreground/[0.02]' : ''}`}>
-                      <td className="px-4 py-3 font-semibold max-w-sm truncate">{p.judul}</td>
-                      <td className="px-4 py-3 text-muted-text">{p.tahun}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="inline-flex gap-2">
-                          <button onClick={() => setModal({ type: 'edit_publikasi', item: p })} className="p-1.5 rounded-lg text-primary-color hover:bg-primary-color/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setModal({ type: 'delete_publikasi', item: p })} className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                        </div>
-                      </td>
+        {/* Tables */}
+        {activeTab !== 'profil' && (
+          <div className="glass rounded-2xl border border-card-border overflow-hidden">
+            {/* PUBLIKASI */}
+            {activeTab === 'publikasi' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-card-border text-left text-xs text-muted-text uppercase tracking-wider">
+                      <th className="px-4 py-3">Judul Publikasi</th>
+                      <th className="px-4 py-3">Tahun</th>
+                      <th className="px-4 py-3 text-right">Aksi</th>
                     </tr>
-                  ))}
-                  {filteredPub.length === 0 && <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-text text-sm">Belum ada publikasi untuk desa ini.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {filteredPub.map((p, i) => (
+                      <tr key={p.id} className={`border-b border-card-border hover:bg-foreground/3 transition-colors ${i % 2 ? 'bg-foreground/[0.02]' : ''}`}>
+                        <td className="px-4 py-3 font-semibold max-w-sm truncate">{p.judul}</td>
+                        <td className="px-4 py-3 text-muted-text">{p.tahun}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="inline-flex gap-2">
+                            <button onClick={() => setModal({ type: 'edit_publikasi', item: p })} className="p-1.5 rounded-lg text-primary-color hover:bg-primary-color/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => setModal({ type: 'delete_publikasi', item: p })} className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredPub.length === 0 && <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-text text-sm">Belum ada publikasi untuk desa ini.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-          {/* POTENSI */}
-          {activeTab === 'potensi' && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-card-border text-left text-xs text-muted-text uppercase tracking-wider">
-                    <th className="px-4 py-3">Nama Potensi</th>
-                    <th className="px-4 py-3">Kategori</th>
-                    <th className="px-4 py-3">Sub Kategori</th>
-                    <th className="px-4 py-3 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPotensi.map((p, i) => (
-                    <tr key={p.id} className={`border-b border-card-border hover:bg-foreground/3 transition-colors ${i % 2 ? 'bg-foreground/[0.02]' : ''}`}>
-                      <td className="px-4 py-3 font-semibold">{p.nama}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                          p.kategori === 'ekonomi' ? 'bg-emerald-500/15 text-emerald-400'
-                          : p.kategori === 'wisata' ? 'bg-blue-500/15 text-blue-400'
-                          : 'bg-amber-500/15 text-amber-400'
-                        }`}>{p.kategori}</span>
-                      </td>
-                      <td className="px-4 py-3 text-muted-text text-xs">{p.subKategori}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="inline-flex gap-2">
-                          <button onClick={() => setModal({ type: 'edit_potensi', item: p })} className="p-1.5 rounded-lg text-primary-color hover:bg-primary-color/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setModal({ type: 'delete_potensi', item: p })} className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                        </div>
-                      </td>
+            {/* POTENSI */}
+            {activeTab === 'potensi' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-card-border text-left text-xs text-muted-text uppercase tracking-wider">
+                      <th className="px-4 py-3">Nama Potensi</th>
+                      <th className="px-4 py-3">Kategori</th>
+                      <th className="px-4 py-3">Sub Kategori</th>
+                      <th className="px-4 py-3 text-right">Aksi</th>
                     </tr>
-                  ))}
-                  {filteredPotensi.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-text text-sm">Belum ada potensi untuk desa ini.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {filteredPotensi.map((p, i) => (
+                      <tr key={p.id} className={`border-b border-card-border hover:bg-foreground/3 transition-colors ${i % 2 ? 'bg-foreground/[0.02]' : ''}`}>
+                        <td className="px-4 py-3 font-semibold">{p.nama}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                            p.kategori === 'ekonomi' ? 'bg-emerald-500/15 text-emerald-400'
+                            : p.kategori === 'wisata' ? 'bg-blue-500/15 text-blue-400'
+                            : 'bg-amber-500/15 text-amber-400'
+                          }`}>{p.kategori}</span>
+                        </td>
+                        <td className="px-4 py-3 text-muted-text text-xs">{p.subKategori}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="inline-flex gap-2">
+                            <button onClick={() => setModal({ type: 'edit_potensi', item: p })} className="p-1.5 rounded-lg text-primary-color hover:bg-primary-color/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => setModal({ type: 'delete_potensi', item: p })} className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredPotensi.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-text text-sm">Belum ada potensi untuk desa ini.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-          {/* INFOGRAFIS */}
-          {activeTab === 'infografis' && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-card-border text-left text-xs text-muted-text uppercase tracking-wider">
-                    <th className="px-4 py-3">Judul Infografis</th>
-                    <th className="px-4 py-3 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredInfografis.map((inf, i) => (
-                    <tr key={inf.id} className={`border-b border-card-border hover:bg-foreground/3 transition-colors ${i % 2 ? 'bg-foreground/[0.02]' : ''}`}>
-                      <td className="px-4 py-3 font-semibold max-w-sm truncate">{inf.judul}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="inline-flex gap-2">
-                          <button onClick={() => setModal({ type: 'edit_infografis', item: inf })} className="p-1.5 rounded-lg text-primary-color hover:bg-primary-color/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setModal({ type: 'delete_infografis', item: inf })} className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                        </div>
-                      </td>
+            {/* INFOGRAFIS */}
+            {activeTab === 'infografis' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-card-border text-left text-xs text-muted-text uppercase tracking-wider">
+                      <th className="px-4 py-3">Judul Infografis</th>
+                      <th className="px-4 py-3 text-right">Aksi</th>
                     </tr>
-                  ))}
-                  {filteredInfografis.length === 0 && <tr><td colSpan={2} className="px-4 py-8 text-center text-muted-text text-sm">Belum ada infografis untuk desa ini.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody>
+                    {filteredInfografis.map((inf, i) => (
+                      <tr key={inf.id} className={`border-b border-card-border hover:bg-foreground/3 transition-colors ${i % 2 ? 'bg-foreground/[0.02]' : ''}`}>
+                        <td className="px-4 py-3 font-semibold max-w-sm truncate">{inf.judul}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="inline-flex gap-2">
+                            <button onClick={() => setModal({ type: 'edit_infografis', item: inf })} className="p-1.5 rounded-lg text-primary-color hover:bg-primary-color/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => setModal({ type: 'delete_infografis', item: inf })} className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredInfografis.length === 0 && <tr><td colSpan={2} className="px-4 py-8 text-center text-muted-text text-sm">Belum ada infografis untuk desa ini.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* ---- MODALS ---- */}

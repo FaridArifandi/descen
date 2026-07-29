@@ -6,10 +6,11 @@ import { motion } from 'framer-motion';
 import {
   Building2, BookOpen, FileImage, TrendingUp,
   Plus, Pencil, Trash2, LogOut, ShieldCheck,
-  RefreshCw, Search, ChevronDown, ChevronUp, AlertTriangle
+  RefreshCw, Search, ChevronDown, ChevronUp, AlertTriangle, MapPin
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import AdminModal from '@/components/AdminModal';
+import LocationPickerModal from '@/components/LocationPickerModal';
 import {
   getAllDesa, createDesa, updateDesa, deleteDesa,
   getAllPublikasi, createPublikasi, updatePublikasi, deletePublikasi,
@@ -58,6 +59,7 @@ function DesaForm({
     latitude: initial?.latitude || 0,
     longitude: initial?.longitude || 0,
   });
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }));
 
   return (
@@ -89,14 +91,43 @@ function DesaForm({
       <Field label="Abstrak Monografi">
         <textarea className={textareaCls} rows={3} value={form.monografiAbstrak} onChange={e => set('monografiAbstrak', e.target.value)} />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Latitude">
-          <input type="number" step="any" className={inputCls} value={form.latitude} onChange={e => set('latitude', Number(e.target.value))} />
-        </Field>
-        <Field label="Longitude">
-          <input type="number" step="any" className={inputCls} value={form.longitude} onChange={e => set('longitude', Number(e.target.value))} />
-        </Field>
+      
+      {/* Coordinate Picker Section */}
+      <div className="p-3.5 rounded-2xl bg-foreground/[0.02] border border-card-border space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-foreground/80 flex items-center gap-1.5">
+            <MapPin className="w-4 h-4 text-primary-color" />
+            Titik Lokasi Koordinat (Peta)
+          </label>
+          <button
+            type="button"
+            onClick={() => setIsMapPickerOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-color/10 border border-primary-color/30 text-primary-color text-xs font-semibold hover:bg-primary-color hover:text-white transition-all"
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            Pilih di Peta
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Latitude">
+            <input type="number" step="any" className={inputCls} value={form.latitude} onChange={e => set('latitude', Number(e.target.value))} />
+          </Field>
+          <Field label="Longitude">
+            <input type="number" step="any" className={inputCls} value={form.longitude} onChange={e => set('longitude', Number(e.target.value))} />
+          </Field>
+        </div>
       </div>
+
+      <LocationPickerModal
+        isOpen={isMapPickerOpen}
+        onClose={() => setIsMapPickerOpen(false)}
+        initialLat={form.latitude}
+        initialLng={form.longitude}
+        onConfirm={(lat, lng) => {
+          setForm(f => ({ ...f, latitude: lat, longitude: lng }));
+        }}
+      />
+
       <div className="flex gap-3 pt-2">
         <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-card-border text-sm font-semibold hover:bg-foreground/5 transition-colors">Batal</button>
         <button
