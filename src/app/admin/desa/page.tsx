@@ -96,12 +96,13 @@ function DesaProfilForm({
               ))}
             </select>
           </Field>
-          <Field label="Tahun Pembinaan Desa" required>
+          <Field label="Tahun Pembinaan Desa (Diatur BPS)">
             <input
               type="number"
-              className={inputCls}
-              value={form.tahunPembinaan}
-              onChange={(e) => set('tahunPembinaan', Number(e.target.value))}
+              className={inputCls + " opacity-60 cursor-not-allowed bg-foreground/5"}
+              value={desa.tahunPembinaan}
+              disabled
+              readOnly
             />
           </Field>
         </div>
