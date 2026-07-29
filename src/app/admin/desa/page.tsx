@@ -15,9 +15,9 @@ import {
   getAllPublikasi, createPublikasi, updatePublikasi, deletePublikasi,
   getAllPotensi, createPotensi, updatePotensi, deletePotensi,
   getAllInfografis, createInfografis, updateInfografis, deleteInfografis,
-  getAllDesa, updateDesa,
+  getAllDesa, updateDesa, getKecamatanAll,
 } from '@/data/adminStore';
-import { Desa, Publikasi, Potensi, Infografis } from '@/types';
+import { Desa, Publikasi, Potensi, Infografis, Kecamatan } from '@/types';
 
 import FileUploadInput from '@/components/FileUploadInput';
 
@@ -40,15 +40,22 @@ const textareaCls = inputCls + " resize-none";
 // ===== PROFIL & LOKASI DESA FORM =====
 function DesaProfilForm({
   desa,
+  kecamatanList,
   onSave,
 }: {
   desa: Desa;
+  kecamatanList: Kecamatan[];
   onSave: (data: Partial<Desa>) => void;
 }) {
   const [form, setForm] = useState({
+    nama: desa.nama || '',
+    kecamatanId: desa.kecamatanId || kecamatanList[0]?.id || 1,
+    tahunPembinaan: desa.tahunPembinaan || new Date().getFullYear(),
     fotoCover: desa.fotoCover || '',
     profilAbstrak: desa.profilAbstrak || '',
+    profilFileUrl: desa.profilFileUrl || '#',
     monografiAbstrak: desa.monografiAbstrak || '',
+    monografiFileUrl: desa.monografiFileUrl || '#',
     latitude: desa.latitude || 0,
     longitude: desa.longitude || 0,
   });
@@ -59,12 +66,47 @@ function DesaProfilForm({
     <div className="glass rounded-2xl border border-card-border p-6 space-y-6">
       <div className="flex items-center justify-between pb-4 border-b border-card-border">
         <div>
-          <h2 className="text-base font-bold text-foreground">Profil & Titik Lokasi {desa.nama}</h2>
-          <p className="text-xs text-muted-text">Kelola foto cover, deskripsi profil, dan lokasi koordinat peta desa Anda.</p>
+          <h2 className="text-base font-bold text-foreground">Edit Profil & Data {form.nama || desa.nama}</h2>
+          <p className="text-xs text-muted-text">Kelola seluruh data desa Anda mulai dari nama, kecamatan, foto cover, dokumen PDF profil/monografi, hingga lokasi peta.</p>
         </div>
       </div>
 
       <div className="space-y-4">
+        {/* Identitas Desa */}
+        <Field label="Nama Desa" required>
+          <input
+            className={inputCls}
+            value={form.nama}
+            onChange={(e) => set('nama', e.target.value)}
+            placeholder="Nama Desa"
+          />
+        </Field>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Kecamatan" required>
+            <select
+              className={inputCls}
+              value={form.kecamatanId}
+              onChange={(e) => set('kecamatanId', Number(e.target.value))}
+            >
+              {kecamatanList.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.nama}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Tahun Pembinaan Desa" required>
+            <input
+              type="number"
+              className={inputCls}
+              value={form.tahunPembinaan}
+              onChange={(e) => set('tahunPembinaan', Number(e.target.value))}
+            />
+          </Field>
+        </div>
+
+        {/* Media Cover */}
         <FileUploadInput
           label="Foto Cover Desa"
           value={form.fotoCover}
@@ -74,26 +116,50 @@ function DesaProfilForm({
           placeholder="Upload foto cover desa atau masukan URL https://..."
         />
 
-        <Field label="Abstrak Profil Desa">
-          <textarea
-            className={textareaCls}
-            rows={4}
-            value={form.profilAbstrak}
-            onChange={(e) => set('profilAbstrak', e.target.value)}
+        {/* Profil & PDF */}
+        <div className="space-y-3 pt-2">
+          <Field label="Abstrak Profil Desa" required>
+            <textarea
+              className={textareaCls}
+              rows={4}
+              value={form.profilAbstrak}
+              onChange={(e) => set('profilAbstrak', e.target.value)}
+              placeholder="Jelaskan ringkasan gambaran umum profil desa..."
+            />
+          </Field>
+          <FileUploadInput
+            label="Dokumen PDF Buku Profil Desa"
+            value={form.profilFileUrl}
+            onChange={(url) => set('profilFileUrl', url)}
+            accept="pdf"
+            bucket="publikasi_pdf"
+            placeholder="Upload file PDF profil desa atau masukan URL https://..."
           />
-        </Field>
+        </div>
 
-        <Field label="Abstrak Monografi Desa">
-          <textarea
-            className={textareaCls}
-            rows={3}
-            value={form.monografiAbstrak}
-            onChange={(e) => set('monografiAbstrak', e.target.value)}
+        {/* Monografi & PDF */}
+        <div className="space-y-3 pt-2">
+          <Field label="Abstrak Monografi Desa">
+            <textarea
+              className={textareaCls}
+              rows={3}
+              value={form.monografiAbstrak}
+              onChange={(e) => set('monografiAbstrak', e.target.value)}
+              placeholder="Ringkasan data monografi desa..."
+            />
+          </Field>
+          <FileUploadInput
+            label="Dokumen PDF Monografi Desa"
+            value={form.monografiFileUrl}
+            onChange={(url) => set('monografiFileUrl', url)}
+            accept="pdf"
+            bucket="publikasi_pdf"
+            placeholder="Upload file PDF monografi desa atau masukan URL https://..."
           />
-        </Field>
+        </div>
 
         {/* Titik Lokasi Peta */}
-        <div className="p-4 rounded-2xl bg-primary-glow/30 border border-primary-color/20 space-y-3">
+        <div className="p-4 rounded-2xl bg-primary-glow/30 border border-primary-color/20 space-y-3 pt-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <label className="text-sm font-bold text-foreground flex items-center gap-1.5">
@@ -153,7 +219,7 @@ function DesaProfilForm({
           onClick={() => onSave(form)}
           className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)]"
         >
-          Simpan Perubahan Profil & Lokasi
+          Simpan Seluruh Data Desa
         </button>
       </div>
     </div>
@@ -339,6 +405,8 @@ export default function AdminDesaPage() {
   const [publikasi, setPublikasi] = useState<Publikasi[]>([]);
   const [potensi, setPotensi] = useState<Potensi[]>([]);
   const [infografis, setInfografis] = useState<Infografis[]>([]);
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
+
   const [modal, setModal] = useState<null | { type: string; item?: unknown }>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -354,6 +422,7 @@ export default function AdminDesaPage() {
     setPublikasi(getAllPublikasi(desaId));
     setPotensi(getAllPotensi(desaId));
     setInfografis(getAllInfografis(desaId));
+    setKecamatanList(getKecamatanAll());
   }, []);
 
   useEffect(() => {
@@ -373,7 +442,7 @@ export default function AdminDesaPage() {
   const filteredInfografis = infografis.filter(i => i.judul.toLowerCase().includes(q));
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
-    { key: 'profil', label: 'Profil & Lokasi Desa', icon: <MapPin className="w-4 h-4" /> },
+    { key: 'profil', label: 'Profil & Data Desa', icon: <MapPin className="w-4 h-4" /> },
     { key: 'publikasi', label: 'Publikasi Desa', icon: <BookOpen className="w-4 h-4" />, count: publikasi.length },
     { key: 'potensi', label: 'Potensi', icon: <TrendingUp className="w-4 h-4" />, count: potensi.length },
     { key: 'infografis', label: 'Infografis', icon: <FileImage className="w-4 h-4" />, count: infografis.length },
@@ -418,7 +487,7 @@ export default function AdminDesaPage() {
           <Info className="w-4 h-4 text-primary-color mt-0.5 shrink-0" />
           <p className="text-xs text-foreground/80">
             Anda login sebagai admin <span className="font-bold text-primary-color">{desaInfo.nama}</span>.
-            Anda dapat mengelola Profil, Lokasi Peta, Publikasi, Potensi, dan Infografis desa Anda.
+            Anda dapat mengedit seluruh data desa Anda sendiri (Nama, Kecamatan, Foto, Profil, PDF Monografi, Lokasi Peta, serta Publikasi, Potensi, & Infografis).
           </p>
         </div>
 
@@ -445,14 +514,15 @@ export default function AdminDesaPage() {
           ))}
         </div>
 
-        {/* Tab Content: PROFIL & LOKASI DESA */}
+        {/* Tab Content: PROFIL & DATA DESA */}
         {activeTab === 'profil' && (
           <DesaProfilForm
             desa={desaInfo}
+            kecamatanList={kecamatanList}
             onSave={(updatedData) => {
               updateDesa(desaInfo.id, updatedData);
               refresh(desaId);
-              showToast('Profil & Lokasi desa berhasil disimpan!');
+              showToast('Data & Profil desa berhasil diperbarui!');
             }}
           />
         )}
