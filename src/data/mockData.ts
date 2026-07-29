@@ -1,4 +1,4 @@
-import { Kecamatan, Desa, Publikasi, Potensi, Infografis } from '@/types';
+import { Kecamatan, Desa, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem } from '@/types';
 
 export const mockKecamatan: Kecamatan[] = [
   { id: 1, nama: 'Simpang Kiri' },
@@ -219,3 +219,50 @@ export const getDashboardStats = () => {
     totalPotensi: mockPotensi.length
   };
 };
+
+export const mockDemografi: Record<number, DemografiDesa> = {
+  1: { desaId: 1, umur0_14: 420, umur15_29: 850, umur30_44: 780, umur45_59: 620, umur60Plus: 460 },
+  2: { desaId: 2, umur0_14: 510, umur15_29: 920, umur30_44: 810, umur45_59: 590, umur60Plus: 410 },
+  3: { desaId: 3, umur0_14: 380, umur15_29: 760, umur30_44: 690, umur45_59: 540, umur60Plus: 390 },
+  4: { desaId: 4, umur0_14: 440, umur15_29: 890, umur30_44: 750, umur45_59: 610, umur60Plus: 430 },
+  5: { desaId: 5, umur0_14: 490, umur15_29: 940, umur30_44: 830, umur45_59: 670, umur60Plus: 480 },
+};
+
+export const mockMataPencaharian: Record<number, MataPencaharianItem[]> = {
+  1: [
+    { desaId: 1, nama: 'Petani', persentase: 45 },
+    { desaId: 1, nama: 'Pedagang', persentase: 20 },
+    { desaId: 1, nama: 'PNS/TNI/Polri', persentase: 10 },
+    { desaId: 1, nama: 'Pekerja Jasa', persentase: 15 },
+    { desaId: 1, nama: 'Lainnya', persentase: 10 },
+  ],
+  2: [
+    { desaId: 2, nama: 'Petani Pangan', persentase: 65 },
+    { desaId: 2, nama: 'Pedagang', persentase: 15 },
+    { desaId: 2, nama: 'PNS/TNI/Polri', persentase: 5 },
+    { desaId: 2, nama: 'Pekerja Jasa', persentase: 10 },
+    { desaId: 2, nama: 'Lainnya', persentase: 5 },
+  ],
+  3: [
+    { desaId: 3, nama: 'Petani', persentase: 35 },
+    { desaId: 3, nama: 'Pengerajin/Pedagang', persentase: 35 },
+    { desaId: 3, nama: 'PNS/TNI/Polri', persentase: 10 },
+    { desaId: 3, nama: 'Pekerja Jasa', persentase: 12 },
+    { desaId: 3, nama: 'Lainnya', persentase: 8 },
+  ],
+  4: [
+    { desaId: 4, nama: 'Petani', persentase: 25 },
+    { desaId: 4, nama: 'Pedagang', persentase: 30 },
+    { desaId: 4, nama: 'PNS/TNI/Polri', persentase: 10 },
+    { desaId: 4, nama: 'Jasa Pariwisata', persentase: 30 },
+    { desaId: 4, nama: 'Lainnya', persentase: 5 },
+  ],
+  5: [
+    { desaId: 5, nama: 'Pekebun Sawit', persentase: 70 },
+    { desaId: 5, nama: 'Pedagang', persentase: 10 },
+    { desaId: 5, nama: 'PNS/TNI/Polri', persentase: 5 },
+    { desaId: 5, nama: 'Pekerja Jasa', persentase: 10 },
+    { desaId: 5, nama: 'Lainnya', persentase: 5 },
+  ]
+};
+

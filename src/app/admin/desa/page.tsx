@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import {
   BookOpen, FileImage, TrendingUp,
   Plus, Pencil, Trash2, LogOut, Building2,
-  Search, AlertTriangle, Info, MapPin
+  Search, AlertTriangle, Info, MapPin, BarChart3
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import AdminModal from '@/components/AdminModal';
@@ -17,11 +17,17 @@ import {
   getAllInfografis, createInfografis, updateInfografis, deleteInfografis,
   getAllDesa, updateDesa, getKecamatanAll,
 } from '@/data/adminStore';
-import { Desa, Publikasi, Potensi, Infografis, Kecamatan } from '@/types';
+import {
+  getDemografiByDesaId,
+  saveDemografiByDesaId,
+  getMataPencaharianByDesaId,
+  saveMataPencaharianByDesaId,
+} from '@/services/database';
+import { Desa, Publikasi, Potensi, Infografis, Kecamatan, DemografiDesa, MataPencaharianItem } from '@/types';
 
 import FileUploadInput from '@/components/FileUploadInput';
 
-type Tab = 'profil' | 'publikasi' | 'potensi' | 'infografis';
+type Tab = 'profil' | 'statistik' | 'publikasi' | 'potensi' | 'infografis';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
@@ -210,6 +216,186 @@ function DesaProfilForm({
           className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)]"
         >
           Simpan Seluruh Data Desa
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ===== STATISTIK & GRAFIK FORM (DEMOGRAFI & MATA PENCAHARIAN) =====
+function DesaStatistikForm({ desaId, onSaved }: { desaId: number; onSaved: () => void }) {
+  const [demografi, setDemografi] = useState<DemografiDesa>({
+    desaId,
+    umur0_14: 0,
+    umur15_29: 0,
+    umur30_44: 0,
+    umur45_59: 0,
+    umur60Plus: 0,
+  });
+  const [mataPencaharian, setMataPencaharian] = useState<MataPencaharianItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      const [demo, mp] = await Promise.all([
+        getDemografiByDesaId(desaId),
+        getMataPencaharianByDesaId(desaId),
+      ]);
+      setDemografi(demo);
+      setMataPencaharian(mp);
+      setLoading(false);
+    }
+    loadData();
+  }, [desaId]);
+
+  const handleSave = async () => {
+    await Promise.all([
+      saveDemografiByDesaId(desaId, demografi),
+      saveMataPencaharianByDesaId(desaId, mataPencaharian),
+    ]);
+    onSaved();
+  };
+
+  if (loading) {
+    return (
+      <div className="glass rounded-2xl p-8 text-center border border-card-border">
+        <p className="text-sm font-semibold text-muted-text">Memuat Data Statistik...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="glass rounded-2xl border border-card-border p-6 space-y-8">
+      {/* Header */}
+      <div className="border-b border-card-border pb-4">
+        <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-primary-color" />
+          <span>Kelola Data Grafik Demografi & Mata Pencaharian</span>
+        </h2>
+        <p className="text-xs text-muted-text mt-1">
+          Data ini akan langsung memperbarui Bar Chart Kelompok Umur & Pie Chart Distribusi Pekerjaan pada halaman detail desa publik.
+        </p>
+      </div>
+
+      {/* Section 1: Demografi (Kelompok Umur) */}
+      <div className="space-y-4">
+        <h3 className="font-bold text-sm text-foreground uppercase tracking-wider text-primary-color">
+          1. Komposisi Kelompok Umur (Jumlah Jiwa)
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <Field label="0 - 14 Tahun" required>
+            <input
+              type="number"
+              className={inputCls}
+              value={demografi.umur0_14}
+              onChange={e => setDemografi({ ...demografi, umur0_14: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label="15 - 29 Tahun" required>
+            <input
+              type="number"
+              className={inputCls}
+              value={demografi.umur15_29}
+              onChange={e => setDemografi({ ...demografi, umur15_29: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label="30 - 44 Tahun" required>
+            <input
+              type="number"
+              className={inputCls}
+              value={demografi.umur30_44}
+              onChange={e => setDemografi({ ...demografi, umur30_44: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label="45 - 59 Tahun" required>
+            <input
+              type="number"
+              className={inputCls}
+              value={demografi.umur45_59}
+              onChange={e => setDemografi({ ...demografi, umur45_59: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label="60+ Tahun" required>
+            <input
+              type="number"
+              className={inputCls}
+              value={demografi.umur60Plus}
+              onChange={e => setDemografi({ ...demografi, umur60Plus: Number(e.target.value) })}
+            />
+          </Field>
+        </div>
+      </div>
+
+      {/* Section 2: Mata Pencaharian */}
+      <div className="space-y-4 pt-4 border-t border-card-border">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-sm text-foreground uppercase tracking-wider text-primary-color">
+            2. Distribusi Mata Pencaharian (%)
+          </h3>
+          <button
+            type="button"
+            onClick={() => setMataPencaharian([...mataPencaharian, { desaId, nama: '', persentase: 0 }])}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-glow border border-primary-color/30 text-primary-color text-xs font-bold hover:bg-primary-color hover:text-white transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Tambah Jenis Pekerjaan</span>
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {mataPencaharian.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-3 glass p-3 rounded-xl border border-card-border">
+              <div className="flex-1">
+                <input
+                  className={inputCls}
+                  placeholder="Contoh: Petani, Pedagang, PNS..."
+                  value={item.nama}
+                  onChange={e => {
+                    const next = [...mataPencaharian];
+                    next[idx].nama = e.target.value;
+                    setMataPencaharian(next);
+                  }}
+                />
+              </div>
+              <div className="w-32 flex items-center gap-1">
+                <input
+                  type="number"
+                  step="any"
+                  className={inputCls}
+                  value={item.persentase}
+                  onChange={e => {
+                    const next = [...mataPencaharian];
+                    next[idx].persentase = Number(e.target.value);
+                    setMataPencaharian(next);
+                  }}
+                />
+                <span className="text-xs font-bold text-muted-text">%</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMataPencaharian(mataPencaharian.filter((_, i) => i !== idx))}
+                className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                title="Hapus"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          {mataPencaharian.length === 0 && (
+            <p className="text-xs text-muted-text text-center py-4">Belum ada kategori pekerjaan. Klik "Tambah Jenis Pekerjaan" di atas.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Submit */}
+      <div className="pt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={handleSave}
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)]"
+        >
+          Simpan Data Grafik Statistik
         </button>
       </div>
     </div>
@@ -433,6 +619,7 @@ export default function AdminDesaPage() {
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
     { key: 'profil', label: 'Profil & Data Desa', icon: <MapPin className="w-4 h-4" /> },
+    { key: 'statistik', label: 'Statistik & Grafik', icon: <BarChart3 className="w-4 h-4" /> },
     { key: 'publikasi', label: 'Publikasi Desa', icon: <BookOpen className="w-4 h-4" />, count: publikasi.length },
     { key: 'potensi', label: 'Potensi', icon: <TrendingUp className="w-4 h-4" />, count: potensi.length },
     { key: 'infografis', label: 'Infografis', icon: <FileImage className="w-4 h-4" />, count: infografis.length },
@@ -477,7 +664,7 @@ export default function AdminDesaPage() {
           <Info className="w-4 h-4 text-primary-color mt-0.5 shrink-0" />
           <p className="text-xs text-foreground/80">
             Anda login sebagai admin <span className="font-bold text-primary-color">{desaInfo.nama}</span>.
-            Anda dapat mengedit seluruh data desa Anda sendiri (Nama, Kecamatan, Foto, Profil, PDF Monografi, Lokasi Peta, serta Publikasi, Potensi, & Infografis).
+            Anda dapat mengedit seluruh data desa Anda sendiri (Nama, Foto, Peta, Grafik Demografi & Mata Pencaharian, serta Publikasi, Potensi, & Infografis).
           </p>
         </div>
 
@@ -517,8 +704,18 @@ export default function AdminDesaPage() {
           />
         )}
 
+        {/* Tab Content: STATISTIK & GRAFIK */}
+        {activeTab === 'statistik' && (
+          <DesaStatistikForm
+            desaId={desaId}
+            onSaved={() => {
+              showToast('Data grafik demografi & mata pencaharian berhasil disimpan!');
+            }}
+          />
+        )}
+
         {/* Search + Add Bar for other tabs */}
-        {activeTab !== 'profil' && (
+        {activeTab !== 'profil' && activeTab !== 'statistik' && (
           <div className="flex gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text" />
@@ -540,7 +737,7 @@ export default function AdminDesaPage() {
         )}
 
         {/* Tables */}
-        {activeTab !== 'profil' && (
+        {activeTab !== 'profil' && activeTab !== 'statistik' && (
           <div className="glass rounded-2xl border border-card-border overflow-hidden">
             {/* PUBLIKASI */}
             {activeTab === 'publikasi' && (

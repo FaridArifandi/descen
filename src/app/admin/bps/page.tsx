@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import {
   Building2, BookOpen, FileImage, TrendingUp,
   Plus, Pencil, Trash2, LogOut, ShieldCheck,
-  RefreshCw, Search, ChevronDown, ChevronUp, AlertTriangle, MapPin
+  RefreshCw, Search, ChevronDown, ChevronUp, AlertTriangle, MapPin, BarChart3
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import AdminModal from '@/components/AdminModal';
@@ -18,7 +18,13 @@ import {
   getAllInfografis, createInfografis, updateInfografis, deleteInfografis,
   getKecamatanAll, resetStore,
 } from '@/data/adminStore';
-import { Desa, Publikasi, Potensi, Infografis, Kecamatan } from '@/types';
+import {
+  getDemografiByDesaId,
+  saveDemografiByDesaId,
+  getMataPencaharianByDesaId,
+  saveMataPencaharianByDesaId,
+} from '@/services/database';
+import { Desa, Publikasi, Potensi, Infografis, Kecamatan, DemografiDesa, MataPencaharianItem } from '@/types';
 import FileUploadInput from '@/components/FileUploadInput';
 
 type Tab = 'desa' | 'publikasi' | 'potensi' | 'infografis';
@@ -134,6 +140,145 @@ function DesaForm({
           onClick={() => onSave(form)}
           className="flex-1 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)]"
         >Simpan</button>
+      </div>
+    </div>
+  );
+}
+
+// ===== STATISTIK DESA FORM =====
+function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId: number; desaNama: string; onSaved: () => void; onCancel: () => void }) {
+  const [demografi, setDemografi] = useState<DemografiDesa>({
+    desaId,
+    umur0_14: 0,
+    umur15_29: 0,
+    umur30_44: 0,
+    umur45_59: 0,
+    umur60Plus: 0,
+  });
+  const [mataPencaharian, setMataPencaharian] = useState<MataPencaharianItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      const [demo, mp] = await Promise.all([
+        getDemografiByDesaId(desaId),
+        getMataPencaharianByDesaId(desaId),
+      ]);
+      setDemografi(demo);
+      setMataPencaharian(mp);
+      setLoading(false);
+    }
+    loadData();
+  }, [desaId]);
+
+  const handleSave = async () => {
+    await Promise.all([
+      saveDemografiByDesaId(desaId, demografi),
+      saveMataPencaharianByDesaId(desaId, mataPencaharian),
+    ]);
+    onSaved();
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-sm font-semibold text-muted-text">Memuat Data Statistik...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-card-border pb-3">
+        <h3 className="font-bold text-sm text-foreground">Statistik Kependudukan: <span className="text-primary-color">{desaNama}</span></h3>
+        <p className="text-xs text-muted-text mt-0.5">Kelola angka demografi dan persentase mata pencaharian desa ini.</p>
+      </div>
+
+      {/* Section 1: Demografi */}
+      <div className="space-y-3">
+        <h4 className="font-bold text-xs uppercase tracking-wider text-primary-color">1. Kelompok Umur (Jumlah Jiwa)</h4>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <Field label="0 - 14 Thn">
+            <input type="number" className={inputCls} value={demografi.umur0_14} onChange={e => setDemografi({ ...demografi, umur0_14: Number(e.target.value) })} />
+          </Field>
+          <Field label="15 - 29 Thn">
+            <input type="number" className={inputCls} value={demografi.umur15_29} onChange={e => setDemografi({ ...demografi, umur15_29: Number(e.target.value) })} />
+          </Field>
+          <Field label="30 - 44 Thn">
+            <input type="number" className={inputCls} value={demografi.umur30_44} onChange={e => setDemografi({ ...demografi, umur30_44: Number(e.target.value) })} />
+          </Field>
+          <Field label="45 - 59 Thn">
+            <input type="number" className={inputCls} value={demografi.umur45_59} onChange={e => setDemografi({ ...demografi, umur45_59: Number(e.target.value) })} />
+          </Field>
+          <Field label="60+ Thn">
+            <input type="number" className={inputCls} value={demografi.umur60Plus} onChange={e => setDemografi({ ...demografi, umur60Plus: Number(e.target.value) })} />
+          </Field>
+        </div>
+      </div>
+
+      {/* Section 2: Mata Pencaharian */}
+      <div className="space-y-3 pt-3 border-t border-card-border">
+        <div className="flex items-center justify-between">
+          <h4 className="font-bold text-xs uppercase tracking-wider text-primary-color">2. Mata Pencaharian (%)</h4>
+          <button
+            type="button"
+            onClick={() => setMataPencaharian([...mataPencaharian, { desaId, nama: '', persentase: 0 }])}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-glow text-primary-color text-xs font-bold hover:bg-primary-color hover:text-white transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Tambah Pekerjaan</span>
+          </button>
+        </div>
+
+        <div className="space-y-2.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
+          {mataPencaharian.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <input
+                className={inputCls}
+                placeholder="Nama Pekerjaan..."
+                value={item.nama}
+                onChange={e => {
+                  const next = [...mataPencaharian];
+                  next[idx].nama = e.target.value;
+                  setMataPencaharian(next);
+                }}
+              />
+              <div className="w-28 flex items-center gap-1">
+                <input
+                  type="number"
+                  step="any"
+                  className={inputCls}
+                  value={item.persentase}
+                  onChange={e => {
+                    const next = [...mataPencaharian];
+                    next[idx].persentase = Number(e.target.value);
+                    setMataPencaharian(next);
+                  }}
+                />
+                <span className="text-xs font-bold text-muted-text">%</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMataPencaharian(mataPencaharian.filter((_, i) => i !== idx))}
+                className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+          {mataPencaharian.length === 0 && (
+            <p className="text-xs text-muted-text text-center py-2">Belum ada data mata pencaharian.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex gap-3 pt-2 border-t border-card-border">
+        <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-card-border text-sm font-semibold hover:bg-foreground/5 transition-colors">Batal</button>
+        <button
+          onClick={handleSave}
+          className="flex-1 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)]"
+        >Simpan Statistik</button>
       </div>
     </div>
   );
@@ -489,8 +634,9 @@ export default function AdminBpsPage() {
                       <td className="px-4 py-3 text-muted-text">{d.tahunPembinaan}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex gap-2">
-                          <button onClick={() => setModal({ type: 'edit_desa', item: d })} className="p-1.5 rounded-lg text-primary-color hover:bg-primary-color/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setModal({ type: 'delete_desa', item: d })} className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setModal({ type: 'stat_desa', item: d })} title="Kelola Grafik Demografi & Mata Pencaharian" className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors"><BarChart3 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setModal({ type: 'edit_desa', item: d })} title="Edit Profil Desa" className="p-1.5 rounded-lg text-primary-color hover:bg-primary-color/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setModal({ type: 'delete_desa', item: d })} title="Hapus Desa" className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </td>
                     </tr>
@@ -728,6 +874,26 @@ export default function AdminBpsPage() {
           onConfirm={() => { deleteInfografis((modal?.item as Infografis).id); refresh(); setModal(null); showToast('Infografis berhasil dihapus.'); }}
           onCancel={() => setModal(null)}
         />
+      </AdminModal>
+
+      {/* EDIT STATISTIK DESA */}
+      <AdminModal
+        isOpen={modal?.type === 'stat_desa'}
+        onClose={() => setModal(null)}
+        title={`Grafik Statistik: ${(modal?.item as Desa)?.nama || ''}`}
+        size="lg"
+      >
+        {modal?.type === 'stat_desa' && modal.item ? (
+          <BpsDesaStatistikForm
+            desaId={(modal.item as Desa).id}
+            desaNama={(modal.item as Desa).nama}
+            onSaved={() => {
+              setModal(null);
+              showToast('Data statistik demografi & mata pencaharian berhasil disimpan.');
+            }}
+            onCancel={() => setModal(null)}
+          />
+        ) : null}
       </AdminModal>
     </div>
   );

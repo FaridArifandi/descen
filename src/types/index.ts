@@ -52,3 +52,21 @@ export interface DashboardStats {
   totalInfografis: number;
   totalPotensi: number;
 }
+
+export interface DemografiDesa {
+  id?: number;
+  desaId: number;
+  umur0_14: number;
+  umur15_29: number;
+  umur30_44: number;
+  umur45_59: number;
+  umur60Plus: number;
+}
+
+export interface MataPencaharianItem {
+  id?: number;
+  desaId: number;
+  nama: string;
+  persentase: number;
+}
+

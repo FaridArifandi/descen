@@ -53,9 +53,11 @@ import {
   getKecamatan, 
   getPublikasi, 
   getPotensi, 
-  getInfografis 
+  getInfografis,
+  getDemografiByDesaId,
+  getMataPencaharianByDesaId
 } from '@/services/database';
-import { Desa, Kecamatan, Publikasi, Potensi, Infografis } from '@/types';
+import { Desa, Kecamatan, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem } from '@/types';
 
 // Chart Colors
 const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
@@ -75,6 +77,8 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
   const [publikasiList, setPublikasiList] = useState<Publikasi[]>([]);
   const [potensiList, setPotensiList] = useState<Potensi[]>([]);
   const [infografisList, setInfografisList] = useState<Infografis[]>([]);
+  const [demografiData, setDemografiData] = useState<DemografiDesa | null>(null);
+  const [mataPencaharianData, setMataPencaharianData] = useState<MataPencaharianItem[]>([]);
 
   // Filter year state for Publikasi tab
   const [filterTahunPublikasi, setFilterTahunPublikasi] = useState<string>('all');
@@ -107,6 +111,20 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
   const id = useMemo(() => {
     return decodeDesaSlug(rawIdParam, desaList);
   }, [rawIdParam, desaList]);
+
+  useEffect(() => {
+    if (id) {
+      async function loadDesaStats() {
+        const [demo, mp] = await Promise.all([
+          getDemografiByDesaId(id),
+          getMataPencaharianByDesaId(id)
+        ]);
+        setDemografiData(demo);
+        setMataPencaharianData(mp);
+      }
+      loadDesaStats();
+    }
+  }, [id]);
 
   // Find Village data
   const desa = useMemo(() => {
@@ -173,8 +191,17 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
     }
   };
 
-  // Dynamic Chart Data per Village (Fase 4b)
+  // Dynamic Chart Data per Village
   const demographicData = useMemo(() => {
+    if (demografiData) {
+      return [
+        { name: '0-14 Tahun', Jumlah: demografiData.umur0_14 },
+        { name: '15-29 Tahun', Jumlah: demografiData.umur15_29 },
+        { name: '30-44 Tahun', Jumlah: demografiData.umur30_44 },
+        { name: '45-59 Tahun', Jumlah: demografiData.umur45_59 },
+        { name: '60+ Tahun', Jumlah: demografiData.umur60Plus }
+      ];
+    }
     const seed = (id * 137) % 50;
     return [
       { name: '0-14 Tahun', Jumlah: 420 + seed * 4 },
@@ -183,9 +210,15 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
       { name: '45-59 Tahun', Jumlah: 620 + seed * 3 },
       { name: '60+ Tahun', Jumlah: 460 + seed * 2 }
     ];
-  }, [id]);
+  }, [id, demografiData]);
 
   const occupationData = useMemo(() => {
+    if (mataPencaharianData && mataPencaharianData.length > 0) {
+      return mataPencaharianData.map(mp => ({
+        name: mp.nama,
+        value: mp.persentase
+      }));
+    }
     if (id === 2) { // Lae Saga (Pertanian)
       return [{ name: 'Petani Pangan', value: 65 }, { name: 'Pedagang', value: 15 }, { name: 'PNS/TNI/Polri', value: 5 }, { name: 'Pekerja Jasa', value: 10 }, { name: 'Lainnya', value: 5 }];
     } else if (id === 4) { // Penanggalan (Wisata)
@@ -196,7 +229,7 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
       return [{ name: 'Petani', value: 35 }, { name: 'Pengerajin/Pedagang', value: 35 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 12 }, { name: 'Lainnya', value: 8 }];
     }
     return [{ name: 'Petani', value: 45 }, { name: 'Pedagang', value: 20 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 15 }, { name: 'Lainnya', value: 10 }];
-  }, [id]);
+  }, [id, mataPencaharianData]);
 
   if (!desa) {
     return (

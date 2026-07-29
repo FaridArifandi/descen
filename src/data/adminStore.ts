@@ -11,8 +11,10 @@ import {
   mockPotensi,
   mockInfografis,
   mockKecamatan,
+  mockDemografi,
+  mockMataPencaharian,
 } from '@/data/mockData';
-import { Desa, Publikasi, Potensi, Infografis, Kecamatan } from '@/types';
+import { Desa, Publikasi, Potensi, Infografis, Kecamatan, DemografiDesa, MataPencaharianItem } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 export interface AdminStore {
@@ -21,6 +23,8 @@ export interface AdminStore {
   potensi: Potensi[];
   infografis: Infografis[];
   kecamatan: Kecamatan[];
+  demografi?: Record<number, DemografiDesa>;
+  mataPencaharian?: Record<number, MataPencaharianItem[]>;
 }
 
 const STORE_KEY = 'desacantik_admin_store_v4';
@@ -362,6 +366,82 @@ export function deleteInfografis(id: number): boolean {
 
 export function getKecamatanAll(): Kecamatan[] {
   return loadStore().kecamatan;
+}
+
+// ========== DEMOGRAFI ==========
+export function getDemografiLocal(desaId: number): DemografiDesa {
+  const store = loadStore();
+  if (store.demografi && store.demografi[desaId]) {
+    return store.demografi[desaId];
+  }
+  return mockDemografi[desaId] || {
+    desaId,
+    umur0_14: 400,
+    umur15_29: 800,
+    umur30_44: 750,
+    umur45_59: 600,
+    umur60Plus: 450,
+  };
+}
+
+export function saveDemografiLocal(desaId: number, data: Omit<DemografiDesa, 'desaId'>): DemografiDesa {
+  const store = loadStore();
+  if (!store.demografi) store.demografi = { ...mockDemografi };
+  const updatedItem: DemografiDesa = { desaId, ...data };
+  store.demografi[desaId] = updatedItem;
+  saveStore(store);
+
+  // Sync to Supabase
+  supabase.from('demografi').upsert({
+    desa_id: desaId,
+    umur_0_14: data.umur0_14,
+    umur_15_29: data.umur15_29,
+    umur_30_44: data.umur30_44,
+    umur_45_59: data.umur45_59,
+    umur_60_plus: data.umur60Plus,
+  }, { onConflict: 'desa_id' }).then(({ error }) => {
+    if (error) console.error('Error saving demografi to Supabase:', error);
+  });
+
+  return updatedItem;
+}
+
+// ========== MATA PENCAHARIAN ==========
+export function getMataPencaharianLocal(desaId: number): MataPencaharianItem[] {
+  const store = loadStore();
+  if (store.mataPencaharian && store.mataPencaharian[desaId]) {
+    return store.mataPencaharian[desaId];
+  }
+  return mockMataPencaharian[desaId] || [
+    { desaId, nama: 'Petani', persentase: 45 },
+    { desaId, nama: 'Pedagang', persentase: 20 },
+    { desaId, nama: 'PNS/TNI/Polri', persentase: 10 },
+    { desaId, nama: 'Pekerja Jasa', persentase: 15 },
+    { desaId, nama: 'Lainnya', persentase: 10 },
+  ];
+}
+
+export function saveMataPencaharianLocal(desaId: number, items: MataPencaharianItem[]): MataPencaharianItem[] {
+  const store = loadStore();
+  if (!store.mataPencaharian) store.mataPencaharian = { ...mockMataPencaharian };
+  store.mataPencaharian[desaId] = items;
+  saveStore(store);
+
+  // Sync to Supabase: first delete existing, then insert new items
+  supabase.from('mata_pencaharian').delete().eq('desa_id', desaId).then(({ error: delErr }) => {
+    if (!delErr && items.length > 0) {
+      const payload = items.map(it => ({
+        desa_id: desaId,
+        nama: it.nama,
+        persentase: it.persentase,
+      }));
+      supabase.from('mata_pencaharian').insert(payload).then(({ error: insErr }) => {
+        if (insErr) console.error('Error inserting mata_pencaharian to Supabase:', insErr);
+      });
+    }
+  });
+
+  return items;
 }
 
 export function resetStore() {

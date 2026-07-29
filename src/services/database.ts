@@ -1,7 +1,17 @@
 import { supabase } from '@/lib/supabase';
-import { Kecamatan, Desa, Publikasi, Potensi, Infografis } from '@/types';
+import { Kecamatan, Desa, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem } from '@/types';
 import { mockKecamatan, mockDesa, mockPublikasi, mockPotensi, mockInfografis } from '@/data/mockData';
-import { getAllDesa, getAllPublikasi, getAllPotensi, getAllInfografis, getKecamatanAll } from '@/data/adminStore';
+import {
+  getAllDesa,
+  getAllPublikasi,
+  getAllPotensi,
+  getAllInfografis,
+  getKecamatanAll,
+  getDemografiLocal,
+  saveDemografiLocal,
+  getMataPencaharianLocal,
+  saveMataPencaharianLocal,
+} from '@/data/adminStore';
 
 // ── KECAMATAN ──
 export async function getKecamatan(): Promise<Kecamatan[]> {
@@ -166,6 +176,104 @@ export async function getInfografis(): Promise<Infografis[]> {
     const local = getAllInfografis();
     return local.length > 0 ? local : mockInfografis;
   }
+}
+
+// ── DEMOGRAFI (KELOMPOK UMUR) ──
+export async function getDemografiByDesaId(desaId: number): Promise<DemografiDesa> {
+  try {
+    const { data, error } = await supabase
+      .from('demografi')
+      .select('*')
+      .eq('desa_id', desaId)
+      .single();
+
+    if (error || !data) return getDemografiLocal(desaId);
+
+    return {
+      id: data.id,
+      desaId: data.desa_id,
+      umur0_14: Number(data.umur_0_14) || 0,
+      umur15_29: Number(data.umur_15_29) || 0,
+      umur30_44: Number(data.umur_30_44) || 0,
+      umur45_59: Number(data.umur_45_59) || 0,
+      umur60Plus: Number(data.umur_60_plus) || 0,
+    };
+  } catch {
+    return getDemografiLocal(desaId);
+  }
+}
+
+export async function saveDemografiByDesaId(desaId: number, data: Omit<DemografiDesa, 'desaId'>): Promise<DemografiDesa> {
+  saveDemografiLocal(desaId, data);
+  try {
+    const { data: dbRes, error } = await supabase
+      .from('demografi')
+      .upsert({
+        desa_id: desaId,
+        umur_0_14: data.umur0_14,
+        umur_15_29: data.umur15_29,
+        umur_30_44: data.umur30_44,
+        umur_45_59: data.umur45_59,
+        umur_60_plus: data.umur60Plus,
+      }, { onConflict: 'desa_id' })
+      .select()
+      .single();
+
+    if (!error && dbRes) {
+      return {
+        id: dbRes.id,
+        desaId: dbRes.desa_id,
+        umur0_14: Number(dbRes.umur_0_14) || 0,
+        umur15_29: Number(dbRes.umur_15_29) || 0,
+        umur30_44: Number(dbRes.umur_30_44) || 0,
+        umur45_59: Number(dbRes.umur_45_59) || 0,
+        umur60Plus: Number(dbRes.umur_60_plus) || 0,
+      };
+    }
+  } catch (err) {
+    console.warn('Supabase save demografi fallback:', err);
+  }
+  return { desaId, ...data };
+}
+
+// ── MATA PENCAHARIAN ──
+export async function getMataPencaharianByDesaId(desaId: number): Promise<MataPencaharianItem[]> {
+  try {
+    const { data, error } = await supabase
+      .from('mata_pencaharian')
+      .select('*')
+      .eq('desa_id', desaId)
+      .order('id', { ascending: true });
+
+    if (error || !data || data.length === 0) return getMataPencaharianLocal(desaId);
+
+    return data.map(item => ({
+      id: item.id,
+      desaId: item.desa_id,
+      nama: item.nama,
+      persentase: Number(item.persentase) || 0,
+    }));
+  } catch {
+    return getMataPencaharianLocal(desaId);
+  }
+}
+
+export async function saveMataPencaharianByDesaId(desaId: number, items: MataPencaharianItem[]): Promise<MataPencaharianItem[]> {
+  saveMataPencaharianLocal(desaId, items);
+  try {
+    await supabase.from('mata_pencaharian').delete().eq('desa_id', desaId);
+    if (items.length > 0) {
+      const payload = items.map(it => ({
+        desa_id: desaId,
+        nama: it.nama,
+        persentase: it.persentase,
+      }));
+      await supabase.from('mata_pencaharian').insert(payload);
+    }
+  } catch (err) {
+    console.warn('Supabase save mata pencaharian fallback:', err);
+  }
+  return items;
 }
 
 // ── DASHBOARD & HELPER STATS ──
