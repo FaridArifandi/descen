@@ -18,6 +18,7 @@ import {
   getKecamatanAll, resetStore,
 } from '@/data/adminStore';
 import { Desa, Publikasi, Potensi, Infografis, Kecamatan } from '@/types';
+import FileUploadInput from '@/components/FileUploadInput';
 
 type Tab = 'desa' | 'publikasi' | 'potensi' | 'infografis';
 
