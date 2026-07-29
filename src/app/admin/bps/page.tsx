@@ -74,9 +74,14 @@ function DesaForm({
           <input type="number" className={inputCls} value={form.tahunPembinaan} onChange={e => set('tahunPembinaan', Number(e.target.value))} />
         </Field>
       </div>
-      <Field label="URL Foto Cover">
-        <input className={inputCls} value={form.fotoCover} onChange={e => set('fotoCover', e.target.value)} placeholder="https://..." />
-      </Field>
+      <FileUploadInput
+        label="Foto Cover Desa"
+        value={form.fotoCover}
+        onChange={(url) => set('fotoCover', url)}
+        accept="image"
+        bucket="media_desa"
+        placeholder="Upload berkas foto cover desa atau masukan URL https://..."
+      />
       <Field label="Abstrak Profil" required>
         <textarea className={textareaCls} rows={3} value={form.profilAbstrak} onChange={e => set('profilAbstrak', e.target.value)} />
       </Field>
@@ -133,17 +138,27 @@ function PublikasiForm({
         </Field>
       </div>
       <Field label="Judul Publikasi" required>
-        <input className={inputCls} value={form.judul} onChange={e => set('judul', e.target.value)} placeholder="Desa X Dalam Angka 2026" />
+        <input className={inputCls} value={form.judul} onChange={e => set('judul', e.target.value)} placeholder="Nama Desa Dalam Angka 2026" />
       </Field>
       <Field label="Ringkasan">
         <textarea className={textareaCls} rows={3} value={form.ringkasan} onChange={e => set('ringkasan', e.target.value)} />
       </Field>
-      <Field label="URL Cover Buku">
-        <input className={inputCls} value={form.coverUrl} onChange={e => set('coverUrl', e.target.value)} placeholder="https://..." />
-      </Field>
-      <Field label="URL File PDF">
-        <input className={inputCls} value={form.pdfUrl} onChange={e => set('pdfUrl', e.target.value)} placeholder="https://..." />
-      </Field>
+      <FileUploadInput
+        label="Cover Buku Publikasi"
+        value={form.coverUrl}
+        onChange={(url) => set('coverUrl', url)}
+        accept="image"
+        bucket="media_desa"
+        placeholder="Upload berkas foto cover atau masukan URL https://..."
+      />
+      <FileUploadInput
+        label="Dokumen PDF Publikasi"
+        value={form.pdfUrl}
+        onChange={(url) => set('pdfUrl', url)}
+        accept="pdf"
+        bucket="publikasi_pdf"
+        placeholder="Upload berkas PDF atau masukan URL https://..."
+      />
       <div className="flex gap-3 pt-2">
         <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-card-border text-sm font-semibold hover:bg-foreground/5 transition-colors">Batal</button>
         <button onClick={() => onSave(form)} className="flex-1 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)]">Simpan</button>

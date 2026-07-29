@@ -18,6 +18,8 @@ import {
 } from '@/data/adminStore';
 import { Desa, Publikasi, Potensi, Infografis } from '@/types';
 
+import FileUploadInput from '@/components/FileUploadInput';
+
 type Tab = 'publikasi' | 'potensi' | 'infografis';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
@@ -60,12 +62,25 @@ function PublikasiForm({ initial, desaId, onSave, onCancel }: { initial?: Partia
       <Field label="Ringkasan">
         <textarea className={textareaCls} rows={3} value={form.ringkasan} onChange={e => set('ringkasan', e.target.value)} />
       </Field>
-      <Field label="URL Cover Buku">
-        <input className={inputCls} value={form.coverUrl} onChange={e => set('coverUrl', e.target.value)} placeholder="https://..." />
-      </Field>
-      <Field label="URL File PDF">
-        <input className={inputCls} value={form.pdfUrl} onChange={e => set('pdfUrl', e.target.value)} placeholder="https://..." />
-      </Field>
+
+      <FileUploadInput
+        label="Cover Buku Publikasi"
+        value={form.coverUrl}
+        onChange={(url) => set('coverUrl', url)}
+        accept="image"
+        bucket="media_desa"
+        placeholder="Upload berkas foto cover atau masukan URL https://..."
+      />
+
+      <FileUploadInput
+        label="Dokumen PDF Publikasi"
+        value={form.pdfUrl}
+        onChange={(url) => set('pdfUrl', url)}
+        accept="pdf"
+        bucket="publikasi_pdf"
+        placeholder="Upload berkas PDF atau masukan URL https://..."
+      />
+
       <div className="flex gap-3 pt-2">
         <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-card-border text-sm font-semibold hover:bg-foreground/5 transition-colors">Batal</button>
         <button onClick={() => onSave(form)} className="flex-1 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)]">Simpan</button>
@@ -106,9 +121,16 @@ function PotensiForm({ initial, desaId, onSave, onCancel }: { initial?: Partial<
       <Field label="Deskripsi">
         <textarea className={textareaCls} rows={3} value={form.deskripsi} onChange={e => set('deskripsi', e.target.value)} />
       </Field>
-      <Field label="URL Foto">
-        <input className={inputCls} value={form.fotoUrl} onChange={e => set('fotoUrl', e.target.value)} placeholder="https://..." />
-      </Field>
+
+      <FileUploadInput
+        label="Foto Potensi / Produk"
+        value={form.fotoUrl}
+        onChange={(url) => set('fotoUrl', url)}
+        accept="image"
+        bucket="media_desa"
+        placeholder="Upload foto potensi atau masukan URL https://..."
+      />
+
       <Field label="URL Video (opsional)">
         <input className={inputCls} value={form.videoUrl} onChange={e => set('videoUrl', e.target.value)} placeholder="https://..." />
       </Field>
@@ -134,12 +156,26 @@ function InfografisForm({ initial, desaId, onSave, onCancel }: { initial?: Parti
       <Field label="Judul Infografis" required>
         <input className={inputCls} value={form.judul} onChange={e => set('judul', e.target.value)} placeholder="Infografis Demografi ..." />
       </Field>
-      <Field label="URL Gambar" required>
-        <input className={inputCls} value={form.imageUrl} onChange={e => set('imageUrl', e.target.value)} placeholder="https://..." />
-      </Field>
-      <Field label="URL PDF">
-        <input className={inputCls} value={form.pdfUrl} onChange={e => set('pdfUrl', e.target.value)} placeholder="https://..." />
-      </Field>
+
+      <FileUploadInput
+        label="Gambar Infografis"
+        value={form.imageUrl}
+        onChange={(url) => set('imageUrl', url)}
+        accept="image"
+        bucket="media_desa"
+        placeholder="Upload file gambar infografis atau masukan URL https://..."
+        required
+      />
+
+      <FileUploadInput
+        label="Dokumen PDF Infografis (opsional)"
+        value={form.pdfUrl}
+        onChange={(url) => set('pdfUrl', url)}
+        accept="pdf"
+        bucket="publikasi_pdf"
+        placeholder="Upload file PDF atau masukan URL https://..."
+      />
+
       <div className="flex gap-3 pt-2">
         <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-card-border text-sm font-semibold hover:bg-foreground/5 transition-colors">Batal</button>
         <button onClick={() => onSave(form)} className="flex-1 py-2.5 rounded-xl bg-primary-color text-white text-sm font-semibold hover:opacity-90 transition-all shadow-[0_0_15px_var(--primary-glow)]">Simpan</button>
