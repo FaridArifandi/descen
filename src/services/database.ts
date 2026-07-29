@@ -13,31 +13,75 @@ import {
   saveMataPencaharianLocal,
 } from '@/data/adminStore';
 
+// ── TIMEOUT HELPER ──
+function withTimeout<T>(promise: PromiseLike<T>, ms = 2000): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Network timeout')), ms);
+    Promise.resolve(promise).then(
+      res => { clearTimeout(timer); resolve(res); },
+      err => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
+// ── FAST SYNCHRONOUS GETTERS (0ms Instant Cache) ──
+export function getKecamatanSync(): Kecamatan[] {
+  const local = getKecamatanAll();
+  return local.length > 0 ? local : mockKecamatan;
+}
+
+export function getDesaListSync(): Desa[] {
+  const local = getAllDesa();
+  return local.length > 0 ? local : mockDesa;
+}
+
+export function getPublikasiSync(): Publikasi[] {
+  const local = getAllPublikasi();
+  return local.length > 0 ? local : mockPublikasi;
+}
+
+export function getPotensiSync(): Potensi[] {
+  const local = getAllPotensi();
+  return local.length > 0 ? local : mockPotensi;
+}
+
+export function getInfografisSync(): Infografis[] {
+  const local = getAllInfografis();
+  return local.length > 0 ? local : mockInfografis;
+}
+
+export function getDemografiSync(desaId: number): DemografiDesa {
+  return getDemografiLocal(desaId);
+}
+
+export function getMataPencaharianSync(desaId: number): MataPencaharianItem[] {
+  return getMataPencaharianLocal(desaId);
+}
+
 // ── KECAMATAN ──
 export async function getKecamatan(): Promise<Kecamatan[]> {
   try {
-    const { data, error } = await supabase.from('kecamatan').select('*').order('id', { ascending: true });
+    const res = await withTimeout(supabase.from('kecamatan').select('*').order('id', { ascending: true }));
+    const { data, error } = res;
     if (error || !data || data.length === 0) {
-      const local = getKecamatanAll();
-      return local.length > 0 ? local : mockKecamatan;
+      return getKecamatanSync();
     }
     return data.map(item => ({
       id: item.id,
       nama: item.nama,
     }));
   } catch {
-    const local = getKecamatanAll();
-    return local.length > 0 ? local : mockKecamatan;
+    return getKecamatanSync();
   }
 }
 
 // ── DESA ──
 export async function getDesaList(): Promise<Desa[]> {
   try {
-    const { data, error } = await supabase.from('desa').select('*').order('id', { ascending: true });
+    const res = await withTimeout(supabase.from('desa').select('*').order('id', { ascending: true }));
+    const { data, error } = res;
     if (error || !data || data.length === 0) {
-      const local = getAllDesa();
-      return local.length > 0 ? local : mockDesa;
+      return getDesaListSync();
     }
     return data.map(d => ({
       id: d.id,
@@ -53,8 +97,7 @@ export async function getDesaList(): Promise<Desa[]> {
       longitude: Number(d.longitude) || 0,
     }));
   } catch {
-    const local = getAllDesa();
-    return local.length > 0 ? local : mockDesa;
+    return getDesaListSync();
   }
 }
 
@@ -114,10 +157,10 @@ export async function deleteDesa(id: number): Promise<boolean> {
 // ── PUBLIKASI ──
 export async function getPublikasi(): Promise<Publikasi[]> {
   try {
-    const { data, error } = await supabase.from('publikasi').select('*').order('id', { ascending: true });
+    const res = await withTimeout(supabase.from('publikasi').select('*').order('id', { ascending: true }));
+    const { data, error } = res;
     if (error || !data || data.length === 0) {
-      const local = getAllPublikasi();
-      return local.length > 0 ? local : mockPublikasi;
+      return getPublikasiSync();
     }
     return data.map(p => ({
       id: p.id,
@@ -129,18 +172,17 @@ export async function getPublikasi(): Promise<Publikasi[]> {
       pdfUrl: p.pdf_url || '#',
     }));
   } catch {
-    const local = getAllPublikasi();
-    return local.length > 0 ? local : mockPublikasi;
+    return getPublikasiSync();
   }
 }
 
 // ── POTENSI ──
 export async function getPotensi(): Promise<Potensi[]> {
   try {
-    const { data, error } = await supabase.from('potensi').select('*').order('id', { ascending: true });
+    const res = await withTimeout(supabase.from('potensi').select('*').order('id', { ascending: true }));
+    const { data, error } = res;
     if (error || !data || data.length === 0) {
-      const local = getAllPotensi();
-      return local.length > 0 ? local : mockPotensi;
+      return getPotensiSync();
     }
     return data.map(pt => ({
       id: pt.id,
@@ -152,18 +194,17 @@ export async function getPotensi(): Promise<Potensi[]> {
       fotoUrl: pt.foto_url || '',
     }));
   } catch {
-    const local = getAllPotensi();
-    return local.length > 0 ? local : mockPotensi;
+    return getPotensiSync();
   }
 }
 
 // ── INFOGRAFIS ──
 export async function getInfografis(): Promise<Infografis[]> {
   try {
-    const { data, error } = await supabase.from('infografis').select('*').order('id', { ascending: true });
+    const res = await withTimeout(supabase.from('infografis').select('*').order('id', { ascending: true }));
+    const { data, error } = res;
     if (error || !data || data.length === 0) {
-      const local = getAllInfografis();
-      return local.length > 0 ? local : mockInfografis;
+      return getInfografisSync();
     }
     return data.map(ig => ({
       id: ig.id,
@@ -173,21 +214,23 @@ export async function getInfografis(): Promise<Infografis[]> {
       pdfUrl: '#',
     }));
   } catch {
-    const local = getAllInfografis();
-    return local.length > 0 ? local : mockInfografis;
+    return getInfografisSync();
   }
 }
 
 // ── DEMOGRAFI (KELOMPOK UMUR) ──
 export async function getDemografiByDesaId(desaId: number): Promise<DemografiDesa> {
   try {
-    const { data, error } = await supabase
-      .from('demografi')
-      .select('*')
-      .eq('desa_id', desaId)
-      .single();
+    const res = await withTimeout(
+      supabase
+        .from('demografi')
+        .select('*')
+        .eq('desa_id', desaId)
+        .single()
+    );
+    const { data, error } = res;
 
-    if (error || !data) return getDemografiLocal(desaId);
+    if (error || !data) return getDemografiSync(desaId);
 
     return {
       id: data.id,
@@ -199,7 +242,7 @@ export async function getDemografiByDesaId(desaId: number): Promise<DemografiDes
       umur60Plus: Number(data.umur_60_plus) || 0,
     };
   } catch {
-    return getDemografiLocal(desaId);
+    return getDemografiSync(desaId);
   }
 }
 
@@ -239,13 +282,16 @@ export async function saveDemografiByDesaId(desaId: number, data: Omit<Demografi
 // ── MATA PENCAHARIAN ──
 export async function getMataPencaharianByDesaId(desaId: number): Promise<MataPencaharianItem[]> {
   try {
-    const { data, error } = await supabase
-      .from('mata_pencaharian')
-      .select('*')
-      .eq('desa_id', desaId)
-      .order('id', { ascending: true });
+    const res = await withTimeout(
+      supabase
+        .from('mata_pencaharian')
+        .select('*')
+        .eq('desa_id', desaId)
+        .order('id', { ascending: true })
+    );
+    const { data, error } = res;
 
-    if (error || !data || data.length === 0) return getMataPencaharianLocal(desaId);
+    if (error || !data || data.length === 0) return getMataPencaharianSync(desaId);
 
     return data.map(item => ({
       id: item.id,
@@ -254,7 +300,7 @@ export async function getMataPencaharianByDesaId(desaId: number): Promise<MataPe
       persentase: Number(item.persentase) || 0,
     }));
   } catch {
-    return getMataPencaharianLocal(desaId);
+    return getMataPencaharianSync(desaId);
   }
 }
 

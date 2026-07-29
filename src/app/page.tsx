@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { getDesaList, getKecamatan, getDashboardStatsFromDb } from '@/services/database';
+import { getDesaList, getKecamatan, getDashboardStatsFromDb, getDesaListSync, getKecamatanSync } from '@/services/database';
 import { Desa, Kecamatan } from '@/types';
 import { encodeDesaSlug } from '@/lib/slug';
 
@@ -33,9 +33,9 @@ const MapDesa = dynamic(() => import('@/components/MapDesa'), {
 });
 
 export default function Home() {
-  const [desaList, setDesaList] = useState<Desa[]>([]);
-  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
-  const [stats, setStats] = useState({ totalDesa: 0, totalPublikasi: 0, totalInfografis: 0, totalPotensi: 0 });
+  const [desaList, setDesaList] = useState<Desa[]>(() => getDesaListSync());
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>(() => getKecamatanSync());
+  const [stats, setStats] = useState({ totalDesa: desaList.length, totalPublikasi: 0, totalInfografis: 0, totalPotensi: 0 });
 
   useEffect(() => {
     async function loadData() {

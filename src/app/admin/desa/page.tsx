@@ -40,7 +40,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
   );
 }
 
-const inputCls = "w-full px-3 py-2.5 rounded-xl bg-background border border-card-border focus:border-primary-color focus:ring-2 focus:ring-primary-color/20 outline-none transition-all text-foreground text-sm placeholder:text-muted-text";
+const inputCls = "w-full px-3 py-2.5 rounded-xl bg-card border border-card-border focus:border-primary-color focus:ring-2 focus:ring-primary-color/20 outline-none transition-all text-foreground text-sm placeholder:text-muted-text shadow-sm";
 const textareaCls = inputCls + " resize-none";
 
 // ===== PROFIL & LOKASI DESA FORM =====

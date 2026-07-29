@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { getDesaList, getKecamatan } from '@/services/database';
+import { getDesaList, getKecamatan, getDesaListSync, getKecamatanSync } from '@/services/database';
 import { Desa, Kecamatan } from '@/types';
 import { encodeDesaSlug } from '@/lib/slug';
 
@@ -36,8 +36,8 @@ function DaftarDesaContent() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') === 'peta' ? 'peta' : 'list';
   
-  const [desaList, setDesaList] = useState<Desa[]>([]);
-  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
+  const [desaList, setDesaList] = useState<Desa[]>(() => getDesaListSync());
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>(() => getKecamatanSync());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKecamatan, setSelectedKecamatan] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');

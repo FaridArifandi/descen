@@ -34,7 +34,12 @@ import {
   getPublikasi,
   getPotensi,
   getInfografis,
-  getDashboardStatsFromDb
+  getDashboardStatsFromDb,
+  getDesaListSync,
+  getKecamatanSync,
+  getPublikasiSync,
+  getPotensiSync,
+  getInfografisSync
 } from '@/services/database';
 import { Desa, Kecamatan, Publikasi, Potensi, Infografis } from '@/types';
 import { encodeDesaSlug } from '@/lib/slug';
@@ -45,12 +50,17 @@ import { mockDesa, mockKecamatan, mockPublikasi, mockPotensi, mockInfografis } f
 const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
 
 export default function DashboardPage() {
-  const [desaList, setDesaList] = useState<Desa[]>([]);
-  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
-  const [publikasiList, setPublikasiList] = useState<Publikasi[]>([]);
-  const [potensiList, setPotensiList] = useState<Potensi[]>([]);
-  const [infografisList, setInfografisList] = useState<Infografis[]>([]);
-  const [stats, setStats] = useState({ totalDesa: 0, totalPublikasi: 0, totalInfografis: 0, totalPotensi: 0 });
+  const [desaList, setDesaList] = useState<Desa[]>(() => getDesaListSync());
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>(() => getKecamatanSync());
+  const [publikasiList, setPublikasiList] = useState<Publikasi[]>(() => getPublikasiSync());
+  const [potensiList, setPotensiList] = useState<Potensi[]>(() => getPotensiSync());
+  const [infografisList, setInfografisList] = useState<Infografis[]>(() => getInfografisSync());
+  const [stats, setStats] = useState({
+    totalDesa: desaList.length,
+    totalPublikasi: publikasiList.length,
+    totalInfografis: infografisList.length,
+    totalPotensi: potensiList.length
+  });
 
   useEffect(() => {
     async function loadData() {
@@ -173,10 +183,11 @@ export default function DashboardPage() {
                     <YAxis stroke="#888888" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
                     <Tooltip 
                       contentStyle={{ 
-                        background: 'rgba(10, 20, 42, 0.9)', 
-                        borderColor: 'rgba(0, 210, 255, 0.3)',
-                        borderRadius: '8px',
-                        color: '#f1f5f9'
+                        background: 'var(--card)', 
+                        borderColor: 'var(--card-border)',
+                        borderRadius: '12px',
+                        color: 'var(--foreground)',
+                        boxShadow: 'var(--glass-shadow)'
                       }} 
                     />
                     <Bar dataKey="Jumlah" fill="#00d2ff" radius={[4, 4, 0, 0]} />
@@ -209,17 +220,18 @@ export default function DashboardPage() {
                     </Pie>
                     <Tooltip 
                       contentStyle={{ 
-                        background: 'rgba(10, 20, 42, 0.9)', 
-                        borderColor: 'rgba(0, 210, 255, 0.3)',
-                        borderRadius: '8px',
-                        color: '#f1f5f9'
+                        background: 'var(--card)', 
+                        borderColor: 'var(--card-border)',
+                        borderRadius: '12px',
+                        color: 'var(--foreground)',
+                        boxShadow: 'var(--glass-shadow)'
                       }} 
                     />
                     <Legend 
                       verticalAlign="bottom" 
                       height={36} 
                       iconType="circle"
-                      wrapperStyle={{ fontSize: '11px', color: '#f1f5f9' }}
+                      wrapperStyle={{ fontSize: '11px', color: 'var(--foreground)' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>

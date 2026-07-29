@@ -55,7 +55,14 @@ import {
   getPotensi, 
   getInfografis,
   getDemografiByDesaId,
-  getMataPencaharianByDesaId
+  getMataPencaharianByDesaId,
+  getDesaListSync,
+  getKecamatanSync,
+  getPublikasiSync,
+  getPotensiSync,
+  getInfografisSync,
+  getDemografiSync,
+  getMataPencaharianSync
 } from '@/services/database';
 import { Desa, Kecamatan, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem } from '@/types';
 
@@ -65,20 +72,22 @@ const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
 export default function DesaDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const rawIdParam = resolvedParams.id;
+  const initialDesaList = getDesaListSync();
+  const initialId = decodeDesaSlug(rawIdParam, initialDesaList);
   
   const [activeTab, setActiveTab] = useState<'publikasi' | 'profil' | 'potensi' | 'peta' | 'infografis'>('publikasi');
   const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
   const [selectedInfographic, setSelectedInfographic] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
 
-  // Database Data States
-  const [desaList, setDesaList] = useState<Desa[]>([]);
-  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
-  const [publikasiList, setPublikasiList] = useState<Publikasi[]>([]);
-  const [potensiList, setPotensiList] = useState<Potensi[]>([]);
-  const [infografisList, setInfografisList] = useState<Infografis[]>([]);
-  const [demografiData, setDemografiData] = useState<DemografiDesa | null>(null);
-  const [mataPencaharianData, setMataPencaharianData] = useState<MataPencaharianItem[]>([]);
+  // Database Data States - Instant Synchronous Initialization (0ms Latency)
+  const [desaList, setDesaList] = useState<Desa[]>(initialDesaList);
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>(() => getKecamatanSync());
+  const [publikasiList, setPublikasiList] = useState<Publikasi[]>(() => getPublikasiSync());
+  const [potensiList, setPotensiList] = useState<Potensi[]>(() => getPotensiSync());
+  const [infografisList, setInfografisList] = useState<Infografis[]>(() => getInfografisSync());
+  const [demografiData, setDemografiData] = useState<DemografiDesa | null>(() => getDemografiSync(initialId));
+  const [mataPencaharianData, setMataPencaharianData] = useState<MataPencaharianItem[]>(() => getMataPencaharianSync(initialId));
 
   // Filter year state for Publikasi tab
   const [filterTahunPublikasi, setFilterTahunPublikasi] = useState<string>('all');
@@ -487,13 +496,14 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                             <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                             <Tooltip 
                               contentStyle={{ 
-                                background: 'rgba(10, 20, 42, 0.9)', 
-                                borderColor: 'rgba(0, 210, 255, 0.3)',
-                                borderRadius: '8px',
-                                color: '#f1f5f9'
+                                background: 'var(--card)', 
+                                borderColor: 'var(--card-border)',
+                                borderRadius: '12px',
+                                color: 'var(--foreground)',
+                                boxShadow: 'var(--glass-shadow)'
                               }} 
                             />
-                            <Bar dataKey="Jumlah" fill="#00d2ff" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Jumlah" fill="var(--primary)" radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -523,17 +533,18 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                             <Tooltip 
                               formatter={(value) => `${value}%`}
                               contentStyle={{ 
-                                background: 'rgba(10, 20, 42, 0.9)', 
-                                borderColor: 'rgba(0, 210, 255, 0.3)',
-                                borderRadius: '8px',
-                                color: '#f1f5f9'
+                                background: 'var(--card)', 
+                                borderColor: 'var(--card-border)',
+                                borderRadius: '12px',
+                                color: 'var(--foreground)',
+                                boxShadow: 'var(--glass-shadow)'
                               }} 
                             />
                             <Legend 
                               verticalAlign="bottom" 
                               height={36} 
                               iconType="circle"
-                              wrapperStyle={{ fontSize: '11px', color: '#f1f5f9' }}
+                              wrapperStyle={{ fontSize: '11px', color: 'var(--foreground)' }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
