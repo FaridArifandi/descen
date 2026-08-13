@@ -200,26 +200,39 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
     }
   };
 
-  // Dynamic Chart Data per Village
+  // Dynamic Chart Data per Village (Sebaran Dusun & Jenis Kelamin)
   const demographicData = useMemo(() => {
-    if (demografiData) {
+    if (demografiData && demografiData.dusunData && demografiData.dusunData.length > 0) {
+      return demografiData.dusunData.map(item => ({
+        dusun: item.dusun,
+        'Laki-laki': item.lakiLaki,
+        Perempuan: item.perempuan,
+        Total: item.lakiLaki + item.perempuan
+      }));
+    }
+    if (id === 1) { // Desa Penanggalan Barat
       return [
-        { name: '0-14 Tahun', Jumlah: demografiData.umur0_14 },
-        { name: '15-29 Tahun', Jumlah: demografiData.umur15_29 },
-        { name: '30-44 Tahun', Jumlah: demografiData.umur30_44 },
-        { name: '45-59 Tahun', Jumlah: demografiData.umur45_59 },
-        { name: '60+ Tahun', Jumlah: demografiData.umur60Plus }
+        { dusun: 'Dusun Pemancar', 'Laki-laki': 397, Perempuan: 395, Total: 792 },
+        { dusun: 'Dusun Silak', 'Laki-laki': 387, Perempuan: 341, Total: 728 },
+        { dusun: 'Dusun Gapa', 'Laki-laki': 150, Perempuan: 181, Total: 331 },
+        { dusun: 'Dusun Nurul Iman', 'Laki-laki': 160, Perempuan: 182, Total: 342 }
       ];
     }
-    const seed = (id * 137) % 50;
     return [
-      { name: '0-14 Tahun', Jumlah: 420 + seed * 4 },
-      { name: '15-29 Tahun', Jumlah: 850 + seed * 6 },
-      { name: '30-44 Tahun', Jumlah: 780 + seed * 5 },
-      { name: '45-59 Tahun', Jumlah: 620 + seed * 3 },
-      { name: '60+ Tahun', Jumlah: 460 + seed * 2 }
+      { dusun: 'Dusun I', 'Laki-laki': 350, Perempuan: 340, Total: 690 },
+      { dusun: 'Dusun II', 'Laki-laki': 280, Perempuan: 290, Total: 570 }
     ];
   }, [id, demografiData]);
+
+  const demographicTotal = useMemo(() => {
+    const totalLaki = demographicData.reduce((sum, item) => sum + item['Laki-laki'], 0);
+    const totalPerempuan = demographicData.reduce((sum, item) => sum + item.Perempuan, 0);
+    return {
+      lakiLaki: totalLaki,
+      perempuan: totalPerempuan,
+      totalPenduduk: totalLaki + totalPerempuan
+    };
+  }, [demographicData]);
 
   const occupationData = useMemo(() => {
     if (mataPencaharianData && mataPencaharianData.length > 0) {
@@ -483,27 +496,65 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                   {/* Visualizations (Recharts Charts) */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Chart 1: Demographics */}
-                    <div className="glass rounded-2xl p-6 border border-card-border">
-                      <h4 className="font-bold text-foreground mb-6 text-sm sm:text-base uppercase tracking-wider">
-                        Komposisi Demografi Penduduk (Kelompok Umur)
-                      </h4>
-                      <div className="h-80 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={demographicData}>
-                            <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                            <Tooltip 
-                              contentStyle={{ 
-                                background: 'var(--card)', 
-                                borderColor: 'var(--card-border)',
-                                borderRadius: '12px',
-                                color: 'var(--foreground)',
-                                boxShadow: 'var(--glass-shadow)'
-                              }} 
-                            />
-                            <Bar dataKey="Jumlah" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                    <div className="glass rounded-2xl p-6 border border-card-border flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-bold text-foreground text-sm sm:text-base uppercase tracking-wider">
+                            Demografi Penduduk per Dusun (Sebaran Laki-Laki & Perempuan)
+                          </h4>
+                        </div>
+                        <div className="h-72 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={demographicData}>
+                              <XAxis dataKey="dusun" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
+                              <YAxis stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  background: 'var(--card)', 
+                                  borderColor: 'var(--card-border)',
+                                  borderRadius: '12px',
+                                  color: 'var(--foreground)',
+                                  boxShadow: 'var(--glass-shadow)'
+                                }} 
+                              />
+                              <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', color: 'var(--foreground)' }} />
+                              <Bar dataKey="Laki-laki" fill="#00d2ff" radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="Perempuan" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        {/* Table Summary per Dusun */}
+                        <div className="mt-4 border-t border-card-border pt-3 overflow-x-auto">
+                          <table className="w-full text-xs text-left">
+                            <thead>
+                              <tr className="border-b border-card-border text-muted-text font-bold uppercase tracking-wider">
+                                <th className="pb-2">Dusun</th>
+                                <th className="pb-2 text-right">Laki-laki</th>
+                                <th className="pb-2 text-right">Perempuan</th>
+                                <th className="pb-2 text-right">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-card-border/40">
+                              {demographicData.map((d, idx) => (
+                                <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                                  <td className="py-1.5 font-semibold text-foreground">{d.dusun}</td>
+                                  <td className="py-1.5 text-right font-medium text-cyan-400">{d['Laki-laki'].toLocaleString('id-ID')}</td>
+                                  <td className="py-1.5 text-right font-medium text-pink-400">{d.Perempuan.toLocaleString('id-ID')}</td>
+                                  <td className="py-1.5 text-right font-bold text-foreground">{d.Total.toLocaleString('id-ID')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="border-t border-card-border text-foreground font-extrabold bg-muted/20">
+                                <td className="py-2 px-1">Jumlah Total</td>
+                                <td className="py-2 text-right text-cyan-400">{demographicTotal.lakiLaki.toLocaleString('id-ID')}</td>
+                                <td className="py-2 text-right text-pink-400">{demographicTotal.perempuan.toLocaleString('id-ID')}</td>
+                                <td className="py-2 text-right text-primary-color">{demographicTotal.totalPenduduk.toLocaleString('id-ID')}</td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
                       </div>
                     </div>
 

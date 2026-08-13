@@ -24,7 +24,7 @@ import {
   getMataPencaharianByDesaId,
   saveMataPencaharianByDesaId,
 } from '@/services/database';
-import { Desa, Publikasi, Potensi, Infografis, Kecamatan, DemografiDesa, MataPencaharianItem } from '@/types';
+import { Desa, Publikasi, Potensi, Infografis, Kecamatan, DemografiDesa, DemografiDusun, MataPencaharianItem } from '@/types';
 import FileUploadInput from '@/components/FileUploadInput';
 
 type Tab = 'desa' | 'publikasi' | 'potensi' | 'infografis';
@@ -149,11 +149,7 @@ function DesaForm({
 function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId: number; desaNama: string; onSaved: () => void; onCancel: () => void }) {
   const [demografi, setDemografi] = useState<DemografiDesa>({
     desaId,
-    umur0_14: 0,
-    umur15_29: 0,
-    umur30_44: 0,
-    umur45_59: 0,
-    umur60Plus: 0,
+    dusunData: []
   });
   const [mataPencaharian, setMataPencaharian] = useState<MataPencaharianItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,7 +161,15 @@ function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId:
         getDemografiByDesaId(desaId),
         getMataPencaharianByDesaId(desaId),
       ]);
-      setDemografi(demo);
+      const initialDusun = demo?.dusunData && demo.dusunData.length > 0
+        ? demo.dusunData
+        : [
+            { dusun: 'Dusun Pemancar', lakiLaki: 397, perempuan: 395 },
+            { dusun: 'Dusun Silak', lakiLaki: 387, perempuan: 341 },
+            { dusun: 'Dusun Gapa', lakiLaki: 150, perempuan: 181 },
+            { dusun: 'Dusun Nurul Iman', lakiLaki: 160, perempuan: 182 }
+          ];
+      setDemografi({ ...demo, dusunData: initialDusun });
       setMataPencaharian(mp);
       setLoading(false);
     }
@@ -180,6 +184,26 @@ function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId:
     onSaved();
   };
 
+  const handleAddDusun = () => {
+    const updated = [...(demografi.dusunData || []), { dusun: '', lakiLaki: 0, perempuan: 0 }];
+    setDemografi({ ...demografi, dusunData: updated });
+  };
+
+  const handleUpdateDusun = (index: number, key: keyof DemografiDusun, value: string | number) => {
+    const updated = [...(demografi.dusunData || [])];
+    updated[index] = { ...updated[index], [key]: value };
+    setDemografi({ ...demografi, dusunData: updated });
+  };
+
+  const handleDeleteDusun = (index: number) => {
+    const updated = (demografi.dusunData || []).filter((_, i) => i !== index);
+    setDemografi({ ...demografi, dusunData: updated });
+  };
+
+  const totalLaki = (demografi.dusunData || []).reduce((acc, item) => acc + (Number(item.lakiLaki) || 0), 0);
+  const totalPerempuan = (demografi.dusunData || []).reduce((acc, item) => acc + (Number(item.perempuan) || 0), 0);
+  const grandTotal = totalLaki + totalPerempuan;
+
   if (loading) {
     return (
       <div className="p-8 text-center">
@@ -192,28 +216,77 @@ function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId:
     <div className="space-y-6">
       <div className="border-b border-card-border pb-3">
         <h3 className="font-bold text-sm text-foreground">Statistik Kependudukan: <span className="text-primary-color">{desaNama}</span></h3>
-        <p className="text-xs text-muted-text mt-0.5">Kelola angka demografi dan persentase mata pencaharian desa ini.</p>
+        <p className="text-xs text-muted-text mt-0.5">Kelola angka demografi per dusun (sebaran Laki-Laki & Perempuan) dan persentase mata pencaharian.</p>
       </div>
 
-      {/* Section 1: Demografi */}
+      {/* Section 1: Demografi per Dusun */}
       <div className="space-y-3">
-        <h4 className="font-bold text-xs uppercase tracking-wider text-primary-color">1. Kelompok Umur (Jumlah Jiwa)</h4>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <Field label="0 - 14 Thn">
-            <input type="number" className={inputCls} value={demografi.umur0_14} onChange={e => setDemografi({ ...demografi, umur0_14: Number(e.target.value) })} />
-          </Field>
-          <Field label="15 - 29 Thn">
-            <input type="number" className={inputCls} value={demografi.umur15_29} onChange={e => setDemografi({ ...demografi, umur15_29: Number(e.target.value) })} />
-          </Field>
-          <Field label="30 - 44 Thn">
-            <input type="number" className={inputCls} value={demografi.umur30_44} onChange={e => setDemografi({ ...demografi, umur30_44: Number(e.target.value) })} />
-          </Field>
-          <Field label="45 - 59 Thn">
-            <input type="number" className={inputCls} value={demografi.umur45_59} onChange={e => setDemografi({ ...demografi, umur45_59: Number(e.target.value) })} />
-          </Field>
-          <Field label="60+ Thn">
-            <input type="number" className={inputCls} value={demografi.umur60Plus} onChange={e => setDemografi({ ...demografi, umur60Plus: Number(e.target.value) })} />
-          </Field>
+        <div className="flex items-center justify-between">
+          <h4 className="font-bold text-xs uppercase tracking-wider text-primary-color">1. Demografi Penduduk per Dusun</h4>
+          <button
+            type="button"
+            onClick={handleAddDusun}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-glow text-primary-color text-xs font-bold hover:bg-primary-color hover:text-white transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Tambah Dusun</span>
+          </button>
+        </div>
+
+        <div className="space-y-2.5">
+          {(demografi.dusunData || []).map((item, idx) => (
+            <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center gap-2 p-2.5 rounded-xl bg-card border border-card-border">
+              <div className="flex-1 min-w-[140px]">
+                <label className="block text-[9px] uppercase font-bold text-muted-text mb-0.5">Nama Dusun</label>
+                <input
+                  type="text"
+                  placeholder="Nama Dusun"
+                  className={inputCls}
+                  value={item.dusun}
+                  onChange={e => handleUpdateDusun(idx, 'dusun', e.target.value)}
+                />
+              </div>
+              <div className="w-24">
+                <label className="block text-[9px] uppercase font-bold text-cyan-400 mb-0.5">Laki-laki</label>
+                <input
+                  type="number"
+                  className={inputCls}
+                  value={item.lakiLaki}
+                  onChange={e => handleUpdateDusun(idx, 'lakiLaki', Number(e.target.value))}
+                />
+              </div>
+              <div className="w-24">
+                <label className="block text-[9px] uppercase font-bold text-pink-400 mb-0.5">Perempuan</label>
+                <input
+                  type="number"
+                  className={inputCls}
+                  value={item.perempuan}
+                  onChange={e => handleUpdateDusun(idx, 'perempuan', Number(e.target.value))}
+                />
+              </div>
+              <div className="w-24 pt-3 text-xs font-extrabold text-foreground">
+                <span className="text-[9px] uppercase font-bold text-muted-text block">Total</span>
+                {(Number(item.lakiLaki || 0) + Number(item.perempuan || 0)).toLocaleString('id-ID')}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDeleteDusun(idx)}
+                className="mt-3 p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                title="Hapus Dusun"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="p-3 rounded-xl bg-primary-glow border border-primary-color/20 flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
+          <span className="text-foreground">Total Desa:</span>
+          <div className="flex items-center gap-3">
+            <span className="text-cyan-400">L: {totalLaki.toLocaleString('id-ID')}</span>
+            <span className="text-pink-400">P: {totalPerempuan.toLocaleString('id-ID')}</span>
+            <span className="text-primary-color bg-background px-2 py-0.5 rounded border border-card-border">Total: {grandTotal.toLocaleString('id-ID')} Jiwa</span>
+          </div>
         </div>
       </div>
 

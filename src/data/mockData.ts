@@ -225,9 +225,31 @@ export const getDashboardStats = () => {
 };
 
 export const mockDemografi: Record<number, DemografiDesa> = {
-  1: { desaId: 1, umur0_14: 450, umur15_29: 880, umur30_44: 760, umur45_59: 610, umur60Plus: 440 },
-  2: { desaId: 2, umur0_14: 510, umur15_29: 920, umur30_44: 810, umur45_59: 590, umur60Plus: 410 },
-  3: { desaId: 3, umur0_14: 480, umur15_29: 900, umur30_44: 790, umur45_59: 630, umur60Plus: 450 },
+  1: {
+    desaId: 1,
+    dusunData: [
+      { dusun: 'Dusun Pemancar', lakiLaki: 397, perempuan: 395 },
+      { dusun: 'Dusun Silak', lakiLaki: 387, perempuan: 341 },
+      { dusun: 'Dusun Gapa', lakiLaki: 150, perempuan: 181 },
+      { dusun: 'Dusun Nurul Iman', lakiLaki: 160, perempuan: 182 }
+    ]
+  },
+  2: {
+    desaId: 2,
+    dusunData: [
+      { dusun: 'Dusun Lae Bersih I', lakiLaki: 410, perempuan: 390 },
+      { dusun: 'Dusun Lae Bersih II', lakiLaki: 350, perempuan: 360 },
+      { dusun: 'Dusun Sukajaya', lakiLaki: 280, perempuan: 295 }
+    ]
+  },
+  3: {
+    desaId: 3,
+    dusunData: [
+      { dusun: 'Dusun Sikelang Indah', lakiLaki: 450, perempuan: 430 },
+      { dusun: 'Dusun Makmur', lakiLaki: 380, perempuan: 370 },
+      { dusun: 'Dusun Sejahtera', lakiLaki: 320, perempuan: 340 }
+    ]
+  },
 };
 
 export const mockMataPencaharian: Record<number, MataPencaharianItem[]> = {

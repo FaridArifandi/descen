@@ -218,7 +218,7 @@ export async function getInfografis(): Promise<Infografis[]> {
   }
 }
 
-// ── DEMOGRAFI (KELOMPOK UMUR) ──
+// ── DEMOGRAFI (DUSUN & SEBARAN LAKI-LAKI/PEREMPUAN) ──
 export async function getDemografiByDesaId(desaId: number): Promise<DemografiDesa> {
   try {
     const res = await withTimeout(
@@ -232,15 +232,17 @@ export async function getDemografiByDesaId(desaId: number): Promise<DemografiDes
 
     if (error || !data) return getDemografiSync(desaId);
 
-    return {
-      id: data.id,
-      desaId: data.desa_id,
-      umur0_14: Number(data.umur_0_14) || 0,
-      umur15_29: Number(data.umur_15_29) || 0,
-      umur30_44: Number(data.umur_30_44) || 0,
-      umur45_59: Number(data.umur_45_59) || 0,
-      umur60Plus: Number(data.umur_60_plus) || 0,
-    };
+    const dusunData = data.dusun_data ? (typeof data.dusun_data === 'string' ? JSON.parse(data.dusun_data) : data.dusun_data) : undefined;
+
+    if (dusunData && Array.isArray(dusunData) && dusunData.length > 0) {
+      return {
+        id: data.id,
+        desaId: data.desa_id,
+        dusunData,
+      };
+    }
+
+    return getDemografiSync(desaId);
   } catch {
     return getDemografiSync(desaId);
   }
@@ -253,24 +255,17 @@ export async function saveDemografiByDesaId(desaId: number, data: Omit<Demografi
       .from('demografi')
       .upsert({
         desa_id: desaId,
-        umur_0_14: data.umur0_14,
-        umur_15_29: data.umur15_29,
-        umur_30_44: data.umur30_44,
-        umur_45_59: data.umur45_59,
-        umur_60_plus: data.umur60Plus,
+        dusun_data: data.dusunData,
       }, { onConflict: 'desa_id' })
       .select()
       .single();
 
     if (!error && dbRes) {
+      const parsedDusun = dbRes.dusun_data ? (typeof dbRes.dusun_data === 'string' ? JSON.parse(dbRes.dusun_data) : dbRes.dusun_data) : data.dusunData;
       return {
         id: dbRes.id,
         desaId: dbRes.desa_id,
-        umur0_14: Number(dbRes.umur_0_14) || 0,
-        umur15_29: Number(dbRes.umur_15_29) || 0,
-        umur30_44: Number(dbRes.umur_30_44) || 0,
-        umur45_59: Number(dbRes.umur_45_59) || 0,
-        umur60Plus: Number(dbRes.umur_60_plus) || 0,
+        dusunData: parsedDusun,
       };
     }
   } catch (err) {

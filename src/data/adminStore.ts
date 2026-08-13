@@ -376,11 +376,10 @@ export function getDemografiLocal(desaId: number): DemografiDesa {
   }
   return mockDemografi[desaId] || {
     desaId,
-    umur0_14: 400,
-    umur15_29: 800,
-    umur30_44: 750,
-    umur45_59: 600,
-    umur60Plus: 450,
+    dusunData: [
+      { dusun: 'Dusun I', lakiLaki: 350, perempuan: 340 },
+      { dusun: 'Dusun II', lakiLaki: 280, perempuan: 290 }
+    ]
   };
 }
 
@@ -391,14 +390,10 @@ export function saveDemografiLocal(desaId: number, data: Omit<DemografiDesa, 'de
   store.demografi[desaId] = updatedItem;
   saveStore(store);
 
-  // Sync to Supabase
+  // Sync to Supabase (store dusunData as JSON string in legacy column or fallback)
   supabase.from('demografi').upsert({
     desa_id: desaId,
-    umur_0_14: data.umur0_14,
-    umur_15_29: data.umur15_29,
-    umur_30_44: data.umur30_44,
-    umur_45_59: data.umur45_59,
-    umur_60_plus: data.umur60Plus,
+    dusun_data: data.dusunData,
   }, { onConflict: 'desa_id' }).then(({ error }) => {
     if (error) console.error('Error saving demografi to Supabase:', error);
   });

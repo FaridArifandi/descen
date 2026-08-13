@@ -53,14 +53,21 @@ export interface DashboardStats {
   totalPotensi: number;
 }
 
+export interface DemografiDusun {
+  dusun: string;
+  lakiLaki: number;
+  perempuan: number;
+}
+
 export interface DemografiDesa {
   id?: number;
   desaId: number;
-  umur0_14: number;
-  umur15_29: number;
-  umur30_44: number;
-  umur45_59: number;
-  umur60Plus: number;
+  dusunData: DemografiDusun[];
+  umur0_14?: number;
+  umur15_29?: number;
+  umur30_44?: number;
+  umur45_59?: number;
+  umur60Plus?: number;
 }
 
 export interface MataPencaharianItem {
