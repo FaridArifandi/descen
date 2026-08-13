@@ -13,6 +13,7 @@ const MapDesa = dynamic(() => import('@/components/MapDesa'), {
     </div>
   )
 });
+import { useParams } from 'next/navigation';
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -69,9 +70,9 @@ import { Desa, Kecamatan, Publikasi, Potensi, Infografis, DemografiDesa, MataPen
 // Chart Colors
 const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
 
-export default function DesaDetail({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const rawIdParam = resolvedParams.id;
+export default function DesaDetail({ params }: { params?: Promise<{ id: string }> }) {
+  const urlParams = useParams();
+  const rawIdParam = (typeof urlParams?.id === 'string' ? urlParams.id : Array.isArray(urlParams?.id) ? urlParams.id[0] : '') || '';
   const initialDesaList = getDesaListSync();
   const initialId = decodeDesaSlug(rawIdParam, initialDesaList);
   
@@ -351,7 +352,7 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
         {/* Banner Section */}
         <section className="relative h-64 sm:h-80 w-full overflow-hidden bg-slate-900">
           <Image
-            src={desa.fotoCover}
+            src={desa.fotoCover || 'https://picsum.photos/seed/desa-cover/800/500'}
             alt={desa.nama}
             fill
             priority

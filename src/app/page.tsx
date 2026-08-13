@@ -259,7 +259,7 @@ export default function Home() {
                 {/* Photo Cover Header */}
                 <div className="relative h-52 w-full overflow-hidden bg-foreground/5">
                   <Image
-                    src={desa.fotoCover}
+                    src={desa.fotoCover || 'https://picsum.photos/seed/desa-card/800/500'}
                     alt={desa.nama}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-500"

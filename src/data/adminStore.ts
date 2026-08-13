@@ -26,7 +26,7 @@ export interface AdminStore {
   mataPencaharian?: Record<number, MataPencaharianItem[]>;
 }
 
-const STORE_KEY = 'desacantik_admin_store_v5';
+const STORE_KEY = 'desacantik_admin_store_v6';
 
 function loadStore(): AdminStore {
   if (typeof window === 'undefined') {
@@ -36,6 +36,8 @@ function loadStore(): AdminStore {
       potensi: mockPotensi,
       infografis: mockInfografis,
       kecamatan: mockKecamatan,
+      demografi: mockDemografi,
+      mataPencaharian: mockMataPencaharian,
     };
   }
 
@@ -49,8 +51,8 @@ function loadStore(): AdminStore {
         potensi: Array.isArray(store.potensi) ? store.potensi : mockPotensi,
         infografis: Array.isArray(store.infografis) ? store.infografis : mockInfografis,
         kecamatan: Array.isArray(store.kecamatan) && store.kecamatan.length > 0 ? store.kecamatan : mockKecamatan,
-        demografi: store.demografi,
-        mataPencaharian: store.mataPencaharian,
+        demografi: store.demografi || mockDemografi,
+        mataPencaharian: store.mataPencaharian || mockMataPencaharian,
       };
     }
   } catch {
@@ -63,12 +65,14 @@ function loadStore(): AdminStore {
     potensi: mockPotensi,
     infografis: mockInfografis,
     kecamatan: mockKecamatan,
+    demografi: mockDemografi,
+    mataPencaharian: mockMataPencaharian,
   };
   localStorage.setItem(STORE_KEY, JSON.stringify(initial));
   return initial;
 }
 
-function saveStore(store: AdminStore) {
+export function saveStore(store: AdminStore) {
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORE_KEY, JSON.stringify(store));
   }
@@ -78,7 +82,7 @@ function nextId<T extends { id: number }>(items: T[]): number {
   return items.length === 0 ? 1 : Math.max(...items.map(x => x.id)) + 1;
 }
 
-// ── Helper: map MySQL row → frontend Desa ──
+// ── Helpers: map MySQL rows → frontend types ──
 function mapDesaFromApi(d: Record<string, unknown>): Desa {
   return {
     id: d.id as number,
@@ -95,15 +99,86 @@ function mapDesaFromApi(d: Record<string, unknown>): Desa {
   };
 }
 
+function mapPublikasiFromApi(p: Record<string, unknown>): Publikasi {
+  return {
+    id: p.id as number,
+    desaId: (p.desa_id as number) || 0,
+    judul: (p.judul as string) || '',
+    tahun: (p.tahun as number) || 0,
+    ringkasan: (p.ringkasan as string) || '',
+    coverUrl: (p.cover_url as string) || '',
+    pdfUrl: (p.pdf_url as string) || '#',
+  };
+}
+
+function mapPotensiFromApi(pt: Record<string, unknown>): Potensi {
+  return {
+    id: pt.id as number,
+    desaId: (pt.desa_id as number) || 0,
+    kategori: (pt.kategori as 'ekonomi' | 'wisata' | 'investasi') || 'ekonomi',
+    subKategori: (pt.sub_kategori as string) || '',
+    nama: (pt.judul as string) || '',
+    deskripsi: (pt.deskripsi as string) || '',
+    fotoUrl: (pt.foto_url as string) || '',
+  };
+}
+
+function mapInfografisFromApi(ig: Record<string, unknown>): Infografis {
+  return {
+    id: ig.id as number,
+    desaId: (ig.desa_id as number) || 0,
+    judul: (ig.judul as string) || '',
+    imageUrl: (ig.gambar_url as string) || '',
+    pdfUrl: '#',
+  };
+}
+
 // ── Sync awal dari MySQL API ke localStorage ──
 export async function syncFromSupabase() {
   try {
-    const res = await fetch('/api/desa');
-    if (!res.ok) return;
-    const dbDesa = await res.json();
-    if (dbDesa && Array.isArray(dbDesa) && dbDesa.length > 0) {
-      const store = loadStore();
-      store.desa = dbDesa.map(mapDesaFromApi);
+    const [desaRes, pubRes, potRes, infoRes] = await Promise.all([
+      fetch('/api/desa').catch(() => null),
+      fetch('/api/publikasi').catch(() => null),
+      fetch('/api/potensi').catch(() => null),
+      fetch('/api/infografis').catch(() => null),
+    ]);
+
+    const store = loadStore();
+    let updated = false;
+
+    if (desaRes && desaRes.ok) {
+      const dbDesa = await desaRes.json();
+      if (Array.isArray(dbDesa) && dbDesa.length > 0) {
+        store.desa = dbDesa.map(mapDesaFromApi);
+        updated = true;
+      }
+    }
+
+    if (pubRes && pubRes.ok) {
+      const dbPub = await pubRes.json();
+      if (Array.isArray(dbPub) && dbPub.length > 0) {
+        store.publikasi = dbPub.map(mapPublikasiFromApi);
+        updated = true;
+      }
+    }
+
+    if (potRes && potRes.ok) {
+      const dbPot = await potRes.json();
+      if (Array.isArray(dbPot) && dbPot.length > 0) {
+        store.potensi = dbPot.map(mapPotensiFromApi);
+        updated = true;
+      }
+    }
+
+    if (infoRes && infoRes.ok) {
+      const dbInfo = await infoRes.json();
+      if (Array.isArray(dbInfo) && dbInfo.length > 0) {
+        store.infografis = dbInfo.map(mapInfografisFromApi);
+        updated = true;
+      }
+    }
+
+    if (updated) {
       saveStore(store);
     }
   } catch {
@@ -111,7 +186,7 @@ export async function syncFromSupabase() {
   }
 }
 
-// Trigger async sync di background
+// Trigger async sync di background saat inisialisasi browser
 if (typeof window !== 'undefined') {
   syncFromSupabase();
 }

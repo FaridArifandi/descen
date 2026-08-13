@@ -298,7 +298,7 @@ function DaftarDesaContent() {
                   >
                     <div className="relative h-48 w-full overflow-hidden bg-foreground/5">
                       <Image
-                        src={desa.fotoCover}
+                        src={desa.fotoCover || 'https://picsum.photos/seed/desa-card/800/500'}
                         alt={desa.nama}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
