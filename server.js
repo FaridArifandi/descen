@@ -1,13 +1,13 @@
 // server.js - Production Entrypoint untuk cPanel (Phusion Passenger)
-const { createServer } = require('http');
+const http = require('http');
 const { parse } = require('url');
 const fs = require('fs');
 const path = require('path');
 const next = require('next');
 
-const dev = false; // Selalu false di production server
-const port = process.env.PORT || 3000;
-const hostname = '0.0.0.0';
+const dev = false;
+const app = next({ dev, dir: __dirname });
+const handle = app.getRequestHandler();
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -24,19 +24,9 @@ const MIME_TYPES = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
-  '.eot': 'application/vnd.ms-fontobject',
   '.pdf': 'application/pdf',
   '.txt': 'text/plain; charset=utf-8',
 };
-
-const app = next({
-  dev,
-  dir: path.resolve(__dirname),
-  hostname,
-  port,
-});
-
-const handle = app.getRequestHandler();
 
 function serveStaticFile(filePath, res, maxAge = 31536000) {
   try {
@@ -51,14 +41,14 @@ function serveStaticFile(filePath, res, maxAge = 31536000) {
       return true;
     }
   } catch (e) {
-    console.error('Error serving file:', filePath, e);
+    // ignore
   }
   return false;
 }
 
 app.prepare()
   .then(() => {
-    createServer(async (req, res) => {
+    const server = http.createServer((req, res) => {
       try {
         const parsedUrl = parse(req.url, true);
         const { pathname } = parsedUrl;
@@ -68,9 +58,7 @@ app.prepare()
           const relativePath = pathname.replace('/_next/static/', '');
           const safePath = path.normalize(relativePath).replace(/^(\.\.[\/\\])+/, '');
           const filePath = path.join(__dirname, '.next', 'static', safePath);
-          if (serveStaticFile(filePath, res, 31536000)) {
-            return;
-          }
+          if (serveStaticFile(filePath, res, 31536000)) return;
         }
 
         // 2. Direct Static Serving untuk upload files (/uploads/*)
@@ -78,36 +66,47 @@ app.prepare()
           const relativePath = pathname.replace('/uploads/', '');
           const safePath = path.normalize(relativePath).replace(/^(\.\.[\/\\])+/, '');
           const filePath = path.join(__dirname, 'public', 'uploads', safePath);
-          if (serveStaticFile(filePath, res, 31536000)) {
-            return;
-          }
+          if (serveStaticFile(filePath, res, 31536000)) return;
         }
 
-        // 3. Direct Static Serving untuk public root files (/favicon.ico, /images/*, dll)
+        // 3. Direct Static Serving untuk public files (/favicon.ico, /images/*, dll)
         if (pathname && pathname !== '/' && !pathname.startsWith('/api/')) {
           const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
           const publicFilePath = path.join(__dirname, 'public', safePath);
           if (fs.existsSync(publicFilePath) && fs.statSync(publicFilePath).isFile()) {
-            if (serveStaticFile(publicFilePath, res, 86400)) {
-              return;
-            }
+            if (serveStaticFile(publicFilePath, res, 86400)) return;
           }
         }
 
-        // 4. Delegasi semua route dinamis dan API ke Next.js Request Handler
-        await handle(req, res, parsedUrl);
+        // 4. Delegasi ke Next.js Request Handler
+        handle(req, res, parsedUrl);
       } catch (err) {
-        console.error('Server error handling:', req.url, err);
+        console.error('Request error:', err);
         if (!res.headersSent) {
           res.statusCode = 500;
           res.end('Internal Server Error');
         }
       }
-    }).listen(port, () => {
-      console.log(`> Desa Cantik server running on port ${port}`);
+    });
+
+    const port = process.env.PORT || 3000;
+    server.listen(port, (err) => {
+      if (err) throw err;
+      console.log(`> Desa Cantik server ready on port ${port}`);
     });
   })
   .catch((err) => {
-    console.error('Next.js preparation error:', err);
-    process.exit(1);
+    console.error('Next.js prepare fatal error:', err);
+    // Jalankan server darurat jika .next belum dibuild agar tidak 503
+    const emergencyServer = http.createServer((req, res) => {
+      res.writeHead(503, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(`
+        <div style="font-family:sans-serif;text-align:center;padding:50px;">
+          <h2>Aplikasi Sedang Mempersiapkan Build</h2>
+          <p>Silakan jalankan <code>npm run build</code> di Terminal cPanel lalu restart aplikasi.</p>
+          <pre style="color:red;background:#f8f9fa;padding:15px;border-radius:8px;display:inline-block;text-align:left;">${err.message}</pre>
+        </div>
+      `);
+    });
+    emergencyServer.listen(process.env.PORT || 3000);
   });
