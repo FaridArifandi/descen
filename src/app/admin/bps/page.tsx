@@ -92,11 +92,27 @@ function DesaForm({
         placeholder="Upload berkas foto cover desa atau masukan URL https://..."
       />
       <Field label="Abstrak Profil" required>
-        <textarea className={textareaCls} rows={3} value={form.profilAbstrak} onChange={e => set('profilAbstrak', e.target.value)} />
+        <textarea className={textareaCls} rows={3} value={form.profilAbstrak} onChange={e => set('profilAbstrak', e.target.value)} placeholder="Ringkasan abstrak profil..." />
       </Field>
+      <FileUploadInput
+        label="Dokumen PDF Profil Desa"
+        value={form.profilFileUrl}
+        onChange={(url) => set('profilFileUrl', url)}
+        accept="pdf"
+        bucket="publikasi_pdf"
+        placeholder="Upload PDF profil desa atau masukan URL https://..."
+      />
       <Field label="Abstrak Monografi">
-        <textarea className={textareaCls} rows={3} value={form.monografiAbstrak} onChange={e => set('monografiAbstrak', e.target.value)} />
+        <textarea className={textareaCls} rows={3} value={form.monografiAbstrak} onChange={e => set('monografiAbstrak', e.target.value)} placeholder="Ringkasan abstrak monografi..." />
       </Field>
+      <FileUploadInput
+        label="Dokumen PDF Monografi Desa"
+        value={form.monografiFileUrl}
+        onChange={(url) => set('monografiFileUrl', url)}
+        accept="pdf"
+        bucket="publikasi_pdf"
+        placeholder="Upload PDF monografi desa atau masukan URL https://..."
+      />
       
       {/* Coordinate Picker Section */}
       <div className="p-3.5 rounded-2xl bg-foreground/[0.02] border border-card-border space-y-3">

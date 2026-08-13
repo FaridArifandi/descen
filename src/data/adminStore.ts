@@ -161,7 +161,9 @@ export function updateDesa(id: number, data: Partial<Omit<Desa, 'id'>>): Desa | 
   if (data.tahunPembinaan !== undefined) payload.tahun_pembinaan = data.tahunPembinaan;
   if (data.fotoCover !== undefined) payload.foto_cover = data.fotoCover;
   if (data.profilAbstrak !== undefined) payload.profil_abstrak = data.profilAbstrak;
+  if (data.profilFileUrl !== undefined) payload.profil_file_url = data.profilFileUrl;
   if (data.monografiAbstrak !== undefined) payload.monografi_abstrak = data.monografiAbstrak;
+  if (data.monografiFileUrl !== undefined) payload.monografi_file_url = data.monografiFileUrl;
   if (data.latitude !== undefined) payload.latitude = data.latitude;
   if (data.longitude !== undefined) payload.longitude = data.longitude;
 

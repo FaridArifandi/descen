@@ -176,6 +176,55 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
 
   const infografis = useMemo(() => infografisList.filter(i => i.desaId === id), [infografisList, id]);
 
+  const handleDownloadPdf = (fileUrl: string | undefined, defaultFilename: string) => {
+    if (!fileUrl || fileUrl === '#' || fileUrl.trim() === '') {
+      alert('Dokumen PDF belum diunggah untuk desa ini.');
+      return;
+    }
+
+    if (fileUrl.startsWith('data:')) {
+      try {
+        const arr = fileUrl.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = defaultFilename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } catch (err) {
+        console.error('Error downloading base64 PDF:', err);
+        alert('Gagal mengunduh berkas PDF.');
+      }
+    } else {
+      const a = document.createElement('a');
+      a.href = fileUrl;
+      a.download = defaultFilename;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
+  const handleViewPdf = (fileUrl: string | undefined) => {
+    if (!fileUrl || fileUrl === '#' || fileUrl.trim() === '') {
+      alert('Dokumen PDF belum diunggah untuk desa ini.');
+      return;
+    }
+    setSelectedPdf(fileUrl);
+  };
+
   // Web share function
   const handleShareInfografis = async (title: string, imageUrl: string) => {
     if (navigator.share) {
@@ -426,14 +475,13 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                                 <Eye className="w-3.5 h-3.5" />
                                 <span>Lihat Online</span>
                               </button>
-                              <a
-                                href={pub.pdfUrl}
-                                download
+                              <button
+                                onClick={() => handleDownloadPdf(pub.pdfUrl, `${pub.judul}.pdf`)}
                                 className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-foreground text-xs font-semibold border border-card-border transition-all duration-200"
                               >
                                 <Download className="w-3.5 h-3.5" />
                                 <span>Unduh PDF</span>
-                              </a>
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -451,44 +499,72 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                     {/* Profil Desa */}
                     <div className="glass rounded-2xl p-6 border border-card-border flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center space-x-2 text-primary-color mb-3">
-                          <Info className="w-5 h-5" />
-                          <h3 className="font-bold text-lg">Profil Desa</h3>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-2 text-primary-color">
+                            <Info className="w-5 h-5" />
+                            <h3 className="font-bold text-lg">Profil Desa</h3>
+                          </div>
+                          {(!desa.profilFileUrl || desa.profilFileUrl === '#') && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-muted/20 text-muted-text">
+                              PDF Belum Diunggah
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-muted-text leading-relaxed">
                           {desa.profilAbstrak}
                         </p>
                       </div>
-                      <div className="mt-6 pt-4 border-t border-card-border flex">
-                        <a 
-                          href={desa.profilFileUrl}
-                          className="inline-flex items-center space-x-1.5 text-xs font-bold text-primary-color hover:underline"
+                      <div className="mt-6 pt-4 border-t border-card-border flex flex-wrap items-center gap-3">
+                        <button
+                          onClick={() => handleViewPdf(desa.profilFileUrl)}
+                          className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-primary-glow border border-primary-color/20 text-primary-color text-xs font-semibold hover:bg-primary-color hover:text-white transition-all duration-200"
                         >
-                          <Download className="w-4 h-4" />
-                          <span>Unduh Profil Desa (Lengkap)</span>
-                        </a>
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Lihat PDF Online</span>
+                        </button>
+                        <button
+                          onClick={() => handleDownloadPdf(desa.profilFileUrl, `Profil_${desa.nama}.pdf`)}
+                          className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-foreground text-xs font-semibold border border-card-border transition-all duration-200"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Unduh PDF</span>
+                        </button>
                       </div>
                     </div>
 
                     {/* Monografi Desa */}
                     <div className="glass rounded-2xl p-6 border border-card-border flex flex-col justify-between">
                       <div>
-                        <div className="flex items-center space-x-2 text-primary-color mb-3">
-                          <Layers className="w-5 h-5" />
-                          <h3 className="font-bold text-lg">Monografi Desa</h3>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-2 text-primary-color">
+                            <Layers className="w-5 h-5" />
+                            <h3 className="font-bold text-lg">Monografi Desa</h3>
+                          </div>
+                          {(!desa.monografiFileUrl || desa.monografiFileUrl === '#') && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-muted/20 text-muted-text">
+                              PDF Belum Diunggah
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-muted-text leading-relaxed">
                           {desa.monografiAbstrak}
                         </p>
                       </div>
-                      <div className="mt-6 pt-4 border-t border-card-border flex">
-                        <a 
-                          href={desa.monografiFileUrl}
-                          className="inline-flex items-center space-x-1.5 text-xs font-bold text-primary-color hover:underline"
+                      <div className="mt-6 pt-4 border-t border-card-border flex flex-wrap items-center gap-3">
+                        <button
+                          onClick={() => handleViewPdf(desa.monografiFileUrl)}
+                          className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-primary-glow border border-primary-color/20 text-primary-color text-xs font-semibold hover:bg-primary-color hover:text-white transition-all duration-200"
                         >
-                          <Download className="w-4 h-4" />
-                          <span>Unduh Monografi Desa (Lengkap)</span>
-                        </a>
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Lihat PDF Online</span>
+                        </button>
+                        <button
+                          onClick={() => handleDownloadPdf(desa.monografiFileUrl, `Monografi_${desa.nama}.pdf`)}
+                          className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-foreground text-xs font-semibold border border-card-border transition-all duration-200"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Unduh PDF</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -851,13 +927,22 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="relative glass w-full max-w-4xl h-[85vh] rounded-3xl overflow-hidden border border-card-border flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-card-border">
-              <span className="font-bold text-foreground text-sm sm:text-base">Pratinjau Publikasi Online</span>
-              <button 
-                onClick={() => setSelectedPdf(null)}
-                className="p-1.5 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-foreground transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <span className="font-bold text-foreground text-sm sm:text-base">Pratinjau Dokumen PDF Online</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleDownloadPdf(selectedPdf, 'dokumen-desa.pdf')}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-primary-glow border border-primary-color/30 text-primary-color text-xs font-bold hover:bg-primary-color hover:text-white transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Unduh PDF</span>
+                </button>
+                <button 
+                  onClick={() => setSelectedPdf(null)}
+                  className="p-1.5 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-foreground transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 bg-slate-900 relative">
               <iframe
