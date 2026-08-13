@@ -44,20 +44,15 @@ function loadStore(): AdminStore {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const store = JSON.parse(raw);
-      const hasDesa = Array.isArray(store.desa) && store.desa.length > 0;
-      const hasPub = Array.isArray(store.publikasi) && store.publikasi.length > 0;
-      const hasPot = Array.isArray(store.potensi) && store.potensi.length > 0;
-      const hasInf = Array.isArray(store.infografis) && store.infografis.length > 0;
-
-      if (hasDesa || hasPub || hasPot || hasInf) {
-        return {
-          desa: hasDesa ? store.desa : mockDesa,
-          publikasi: hasPub ? store.publikasi : mockPublikasi,
-          potensi: hasPub ? store.potensi : mockPotensi,
-          infografis: hasInf ? store.infografis : mockInfografis,
-          kecamatan: Array.isArray(store.kecamatan) && store.kecamatan.length > 0 ? store.kecamatan : mockKecamatan,
-        };
-      }
+      return {
+        desa: Array.isArray(store.desa) ? store.desa : mockDesa,
+        publikasi: Array.isArray(store.publikasi) ? store.publikasi : mockPublikasi,
+        potensi: Array.isArray(store.potensi) ? store.potensi : mockPotensi,
+        infografis: Array.isArray(store.infografis) ? store.infografis : mockInfografis,
+        kecamatan: Array.isArray(store.kecamatan) && store.kecamatan.length > 0 ? store.kecamatan : mockKecamatan,
+        demografi: store.demografi,
+        mataPencaharian: store.mataPencaharian,
+      };
     }
   } catch {
     // ignore

@@ -27,27 +27,23 @@ function withTimeout<T>(promise: PromiseLike<T>, ms = 2000): Promise<T> {
 // ── FAST SYNCHRONOUS GETTERS (0ms Instant Cache) ──
 export function getKecamatanSync(): Kecamatan[] {
   const local = getKecamatanAll();
-  return local.length > 0 ? local : mockKecamatan;
+  return local && local.length > 0 ? local : mockKecamatan;
 }
 
 export function getDesaListSync(): Desa[] {
-  const local = getAllDesa();
-  return local.length > 0 ? local : mockDesa;
+  return getAllDesa();
 }
 
 export function getPublikasiSync(): Publikasi[] {
-  const local = getAllPublikasi();
-  return local.length > 0 ? local : mockPublikasi;
+  return getAllPublikasi();
 }
 
 export function getPotensiSync(): Potensi[] {
-  const local = getAllPotensi();
-  return local.length > 0 ? local : mockPotensi;
+  return getAllPotensi();
 }
 
 export function getInfografisSync(): Infografis[] {
-  const local = getAllInfografis();
-  return local.length > 0 ? local : mockInfografis;
+  return getAllInfografis();
 }
 
 export function getDemografiSync(desaId: number): DemografiDesa {
