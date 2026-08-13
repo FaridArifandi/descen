@@ -31,8 +31,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    await new Promise(r => setTimeout(r, 600)); // simulasi delay
-    const result = login(username, password);
+    const result = await login(username, password);
     setIsLoading(false);
     if (!result.success) {
       setError(result.message);

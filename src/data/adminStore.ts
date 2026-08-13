@@ -1,8 +1,8 @@
 /**
  * adminStore.ts
  * 
- * Local store + Supabase real-time sync.
- * Menyimpan ke local state & menyinkronkan langsung ke database Supabase.
+ * Local store + MySQL API sync.
+ * Menyimpan ke local state & menyinkronkan ke MySQL via API Routes.
  */
 
 import {
@@ -15,7 +15,6 @@ import {
   mockMataPencaharian,
 } from '@/data/mockData';
 import { Desa, Publikasi, Potensi, Infografis, Kecamatan, DemografiDesa, MataPencaharianItem } from '@/types';
-import { supabase } from '@/lib/supabase';
 
 export interface AdminStore {
   desa: Desa[];
@@ -79,25 +78,32 @@ function nextId<T extends { id: number }>(items: T[]): number {
   return items.length === 0 ? 1 : Math.max(...items.map(x => x.id)) + 1;
 }
 
-// ── Sync awal dari Supabase ke localStorage ──
+// ── Helper: map MySQL row → frontend Desa ──
+function mapDesaFromApi(d: Record<string, unknown>): Desa {
+  return {
+    id: d.id as number,
+    nama: d.nama as string,
+    kecamatanId: (d.kecamatan_id as number) || 0,
+    tahunPembinaan: (d.tahun_pembinaan as number) || 2026,
+    fotoCover: (d.foto_cover as string) || '',
+    profilAbstrak: (d.profil_abstrak as string) || '',
+    profilFileUrl: (d.profil_file_url as string) || '#',
+    monografiAbstrak: (d.monografi_abstrak as string) || '',
+    monografiFileUrl: (d.monografi_file_url as string) || '#',
+    latitude: Number(d.latitude) || 0,
+    longitude: Number(d.longitude) || 0,
+  };
+}
+
+// ── Sync awal dari MySQL API ke localStorage ──
 export async function syncFromSupabase() {
   try {
-    const { data: dbDesa } = await supabase.from('desa').select('*').order('id', { ascending: true });
-    if (dbDesa && dbDesa.length > 0) {
+    const res = await fetch('/api/desa');
+    if (!res.ok) return;
+    const dbDesa = await res.json();
+    if (dbDesa && Array.isArray(dbDesa) && dbDesa.length > 0) {
       const store = loadStore();
-      store.desa = dbDesa.map(d => ({
-        id: d.id,
-        nama: d.nama,
-        kecamatanId: d.kecamatan_id,
-        tahunPembinaan: d.tahun_pembinaan,
-        fotoCover: d.foto_cover || '',
-        profilAbstrak: d.profil_abstrak || '',
-        profilFileUrl: d.profil_file_url || '#',
-        monografiAbstrak: d.monografi_abstrak || '',
-        monografiFileUrl: d.monografi_file_url || '#',
-        latitude: Number(d.latitude) || 0,
-        longitude: Number(d.longitude) || 0,
-      }));
+      store.desa = dbDesa.map(mapDesaFromApi);
       saveStore(store);
     }
   } catch {
@@ -122,22 +128,23 @@ export function createDesa(data: Omit<Desa, 'id'>): Desa {
   store.desa.push(item);
   saveStore(store);
 
-  // Kirim ke Supabase secara asynchronous
-  supabase.from('desa').insert([{
-    id: newId,
-    nama: data.nama,
-    kecamatan_id: data.kecamatanId,
-    tahun_pembinaan: data.tahunPembinaan,
-    foto_cover: data.fotoCover,
-    profil_abstrak: data.profilAbstrak,
-    profil_file_url: data.profilFileUrl,
-    monografi_abstrak: data.monografiAbstrak,
-    monografi_file_url: data.monografiFileUrl,
-    latitude: data.latitude,
-    longitude: data.longitude,
-  }]).then(({ error }) => {
-    if (error) console.error('Error inserting to Supabase:', error);
-  });
+  // Sync ke MySQL via API
+  fetch('/api/desa', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nama: data.nama,
+      kecamatan_id: data.kecamatanId,
+      tahun_pembinaan: data.tahunPembinaan,
+      foto_cover: data.fotoCover,
+      profil_abstrak: data.profilAbstrak,
+      profil_file_url: data.profilFileUrl,
+      monografi_abstrak: data.monografiAbstrak,
+      monografi_file_url: data.monografiFileUrl,
+      latitude: data.latitude,
+      longitude: data.longitude,
+    }),
+  }).catch(err => console.error('Error syncing desa to MySQL:', err));
 
   return item;
 }
@@ -149,7 +156,7 @@ export function updateDesa(id: number, data: Partial<Omit<Desa, 'id'>>): Desa | 
   store.desa[idx] = { ...store.desa[idx], ...data };
   saveStore(store);
 
-  // Sync update ke Supabase
+  // Sync update ke MySQL
   const payload: Record<string, unknown> = {};
   if (data.nama !== undefined) payload.nama = data.nama;
   if (data.kecamatanId !== undefined) payload.kecamatan_id = data.kecamatanId;
@@ -162,9 +169,11 @@ export function updateDesa(id: number, data: Partial<Omit<Desa, 'id'>>): Desa | 
   if (data.latitude !== undefined) payload.latitude = data.latitude;
   if (data.longitude !== undefined) payload.longitude = data.longitude;
 
-  supabase.from('desa').update(payload).eq('id', id).then(({ error }) => {
-    if (error) console.error('Error updating to Supabase:', error);
-  });
+  fetch(`/api/desa/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(err => console.error('Error updating desa in MySQL:', err));
 
   return store.desa[idx];
 }
@@ -178,10 +187,9 @@ export function deleteDesa(id: number): boolean {
   store.infografis = store.infografis.filter(i => i.desaId !== id);
   saveStore(store);
 
-  // Sync delete ke Supabase
-  supabase.from('desa').delete().eq('id', id).then(({ error }) => {
-    if (error) console.error('Error deleting from Supabase:', error);
-  });
+  // Sync delete ke MySQL
+  fetch(`/api/desa/${id}`, { method: 'DELETE' })
+    .catch(err => console.error('Error deleting desa from MySQL:', err));
 
   return store.desa.length < before;
 }
@@ -199,17 +207,18 @@ export function createPublikasi(data: Omit<Publikasi, 'id'>): Publikasi {
   store.publikasi.push(item);
   saveStore(store);
 
-  supabase.from('publikasi').insert([{
-    id: newId,
-    desa_id: data.desaId,
-    judul: data.judul,
-    tahun: data.tahun,
-    ringkasan: data.ringkasan,
-    cover_url: data.coverUrl,
-    pdf_url: data.pdfUrl,
-  }]).then(({ error }) => {
-    if (error) console.error('Error inserting publikasi to Supabase:', error);
-  });
+  fetch('/api/publikasi', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      desa_id: data.desaId,
+      judul: data.judul,
+      tahun: data.tahun,
+      ringkasan: data.ringkasan,
+      cover_url: data.coverUrl,
+      pdf_url: data.pdfUrl,
+    }),
+  }).catch(err => console.error('Error inserting publikasi to MySQL:', err));
 
   return item;
 }
@@ -221,15 +230,17 @@ export function updatePublikasi(id: number, data: Partial<Omit<Publikasi, 'id'>>
   store.publikasi[idx] = { ...store.publikasi[idx], ...data };
   saveStore(store);
 
-  supabase.from('publikasi').update({
-    judul: data.judul,
-    tahun: data.tahun,
-    ringkasan: data.ringkasan,
-    cover_url: data.coverUrl,
-    pdf_url: data.pdfUrl,
-  }).eq('id', id).then(({ error }) => {
-    if (error) console.error('Error updating publikasi to Supabase:', error);
-  });
+  fetch(`/api/publikasi/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      judul: data.judul,
+      tahun: data.tahun,
+      ringkasan: data.ringkasan,
+      cover_url: data.coverUrl,
+      pdf_url: data.pdfUrl,
+    }),
+  }).catch(err => console.error('Error updating publikasi in MySQL:', err));
 
   return store.publikasi[idx];
 }
@@ -240,9 +251,8 @@ export function deletePublikasi(id: number): boolean {
   store.publikasi = store.publikasi.filter(p => p.id !== id);
   saveStore(store);
 
-  supabase.from('publikasi').delete().eq('id', id).then(({ error }) => {
-    if (error) console.error('Error deleting publikasi from Supabase:', error);
-  });
+  fetch(`/api/publikasi/${id}`, { method: 'DELETE' })
+    .catch(err => console.error('Error deleting publikasi from MySQL:', err));
 
   return store.publikasi.length < before;
 }
@@ -260,16 +270,18 @@ export function createPotensi(data: Omit<Potensi, 'id'>): Potensi {
   store.potensi.push(item);
   saveStore(store);
 
-  supabase.from('potensi').insert([{
-    id: newId,
-    desa_id: data.desaId,
-    judul: data.nama,
-    deskripsi: data.deskripsi,
-    foto_url: data.fotoUrl,
-    kategori: data.kategori,
-  }]).then(({ error }) => {
-    if (error) console.error('Error inserting potensi to Supabase:', error);
-  });
+  fetch('/api/potensi', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      desa_id: data.desaId,
+      judul: data.nama,
+      deskripsi: data.deskripsi,
+      foto_url: data.fotoUrl,
+      kategori: data.kategori,
+      sub_kategori: data.subKategori,
+    }),
+  }).catch(err => console.error('Error inserting potensi to MySQL:', err));
 
   return item;
 }
@@ -281,14 +293,17 @@ export function updatePotensi(id: number, data: Partial<Omit<Potensi, 'id'>>): P
   store.potensi[idx] = { ...store.potensi[idx], ...data };
   saveStore(store);
 
-  supabase.from('potensi').update({
-    judul: data.nama,
-    deskripsi: data.deskripsi,
-    foto_url: data.fotoUrl,
-    kategori: data.kategori,
-  }).eq('id', id).then(({ error }) => {
-    if (error) console.error('Error updating potensi to Supabase:', error);
-  });
+  fetch(`/api/potensi/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      judul: data.nama,
+      deskripsi: data.deskripsi,
+      foto_url: data.fotoUrl,
+      kategori: data.kategori,
+      sub_kategori: data.subKategori,
+    }),
+  }).catch(err => console.error('Error updating potensi in MySQL:', err));
 
   return store.potensi[idx];
 }
@@ -299,9 +314,8 @@ export function deletePotensi(id: number): boolean {
   store.potensi = store.potensi.filter(p => p.id !== id);
   saveStore(store);
 
-  supabase.from('potensi').delete().eq('id', id).then(({ error }) => {
-    if (error) console.error('Error deleting potensi from Supabase:', error);
-  });
+  fetch(`/api/potensi/${id}`, { method: 'DELETE' })
+    .catch(err => console.error('Error deleting potensi from MySQL:', err));
 
   return store.potensi.length < before;
 }
@@ -319,14 +333,15 @@ export function createInfografis(data: Omit<Infografis, 'id'>): Infografis {
   store.infografis.push(item);
   saveStore(store);
 
-  supabase.from('infografis').insert([{
-    id: newId,
-    desa_id: data.desaId,
-    judul: data.judul,
-    gambar_url: data.imageUrl,
-  }]).then(({ error }) => {
-    if (error) console.error('Error inserting infografis to Supabase:', error);
-  });
+  fetch('/api/infografis', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      desa_id: data.desaId,
+      judul: data.judul,
+      gambar_url: data.imageUrl,
+    }),
+  }).catch(err => console.error('Error inserting infografis to MySQL:', err));
 
   return item;
 }
@@ -338,12 +353,14 @@ export function updateInfografis(id: number, data: Partial<Omit<Infografis, 'id'
   store.infografis[idx] = { ...store.infografis[idx], ...data };
   saveStore(store);
 
-  supabase.from('infografis').update({
-    judul: data.judul,
-    gambar_url: data.imageUrl,
-  }).eq('id', id).then(({ error }) => {
-    if (error) console.error('Error updating infografis to Supabase:', error);
-  });
+  fetch(`/api/infografis/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      judul: data.judul,
+      gambar_url: data.imageUrl,
+    }),
+  }).catch(err => console.error('Error updating infografis in MySQL:', err));
 
   return store.infografis[idx];
 }
@@ -354,9 +371,8 @@ export function deleteInfografis(id: number): boolean {
   store.infografis = store.infografis.filter(i => i.id !== id);
   saveStore(store);
 
-  supabase.from('infografis').delete().eq('id', id).then(({ error }) => {
-    if (error) console.error('Error deleting infografis from Supabase:', error);
-  });
+  fetch(`/api/infografis/${id}`, { method: 'DELETE' })
+    .catch(err => console.error('Error deleting infografis from MySQL:', err));
 
   return store.infografis.length < before;
 }
@@ -387,13 +403,12 @@ export function saveDemografiLocal(desaId: number, data: Omit<DemografiDesa, 'de
   store.demografi[desaId] = updatedItem;
   saveStore(store);
 
-  // Sync to Supabase (store dusunData as JSON string in legacy column or fallback)
-  supabase.from('demografi').upsert({
-    desa_id: desaId,
-    dusun_data: data.dusunData,
-  }, { onConflict: 'desa_id' }).then(({ error }) => {
-    if (error) console.error('Error saving demografi to Supabase:', error);
-  });
+  // Sync to MySQL via API
+  fetch(`/api/demografi/${desaId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dusun_data: data.dusunData }),
+  }).catch(err => console.error('Error saving demografi to MySQL:', err));
 
   return updatedItem;
 }
@@ -419,19 +434,14 @@ export function saveMataPencaharianLocal(desaId: number, items: MataPencaharianI
   store.mataPencaharian[desaId] = items;
   saveStore(store);
 
-  // Sync to Supabase: first delete existing, then insert new items
-  supabase.from('mata_pencaharian').delete().eq('desa_id', desaId).then(({ error: delErr }) => {
-    if (!delErr && items.length > 0) {
-      const payload = items.map(it => ({
-        desa_id: desaId,
-        nama: it.nama,
-        persentase: it.persentase,
-      }));
-      supabase.from('mata_pencaharian').insert(payload).then(({ error: insErr }) => {
-        if (insErr) console.error('Error inserting mata_pencaharian to Supabase:', insErr);
-      });
-    }
-  });
+  // Sync to MySQL via API
+  fetch(`/api/mata-pencaharian/${desaId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      items: items.map(it => ({ nama: it.nama, persentase: it.persentase })),
+    }),
+  }).catch(err => console.error('Error saving mata_pencaharian to MySQL:', err));
 
   return items;
 }

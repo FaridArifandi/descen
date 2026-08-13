@@ -1,5 +1,3 @@
-import { supabase } from '@/lib/supabase';
-
 /**
  * Convert file to Base64 data URL for offline fallback or preview.
  */
@@ -13,33 +11,34 @@ export function fileToBase64(file: File): Promise<string> {
 }
 
 /**
- * Uploads a file (Image or PDF) to Supabase Storage.
- * Uses Base64 data URL as smooth fallback if bucket is offline or unconfigured.
+ * Uploads a file (Image or PDF) to the server via /api/upload.
+ * Uses Base64 data URL as smooth fallback if upload fails.
  */
 export async function uploadFileToSupabase(
   file: File,
   bucket: 'media_desa' | 'publikasi_pdf' = 'media_desa'
 ): Promise<string> {
   try {
-    const fileExt = file.name.split('.').pop() || 'bin';
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', bucket);
 
-    // Attempt upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(fileName, file, { cacheControl: '3600', upsert: true });
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
 
-    if (!uploadError && uploadData) {
-      const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-      if (publicUrlData?.publicUrl) {
-        return publicUrlData.publicUrl;
+    if (res.ok) {
+      const data = await res.json();
+      if (data.url) {
+        return data.url;
       }
     }
 
     // Smooth fallback to Base64 data URL
     return await fileToBase64(file);
   } catch (err) {
-    console.warn('Supabase storage upload fallback to base64:', err);
+    console.warn('File upload fallback to base64:', err);
     return await fileToBase64(file);
   }
 }

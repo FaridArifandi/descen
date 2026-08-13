@@ -1,6 +1,15 @@
-import { supabase } from '@/lib/supabase';
+/**
+ * database.ts
+ *
+ * Service layer — fetches data from Next.js API Routes (backed by MySQL).
+ * Replaces the previous Supabase client-side SDK approach.
+ *
+ * - Read functions: fetch from /api/... with localStorage cache fallback
+ * - Write functions: POST/PUT/DELETE to /api/... with local store sync
+ */
+
 import { Kecamatan, Desa, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem } from '@/types';
-import { mockKecamatan, mockDesa, mockPublikasi, mockPotensi, mockInfografis } from '@/data/mockData';
+import { mockKecamatan, mockDesa, mockPublikasi, mockPotensi, mockInfografis, mockDemografi, mockMataPencaharian } from '@/data/mockData';
 import {
   getAllDesa,
   getAllPublikasi,
@@ -14,10 +23,10 @@ import {
 } from '@/data/adminStore';
 
 // ── TIMEOUT HELPER ──
-function withTimeout<T>(promise: PromiseLike<T>, ms = 2000): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms = 5000): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Network timeout')), ms);
-    Promise.resolve(promise).then(
+    promise.then(
       res => { clearTimeout(timer); resolve(res); },
       err => { clearTimeout(timer); reject(err); }
     );
@@ -54,17 +63,76 @@ export function getMataPencaharianSync(desaId: number): MataPencaharianItem[] {
   return getMataPencaharianLocal(desaId);
 }
 
+// ── Helper: map MySQL row → frontend type ──
+function mapDesa(d: Record<string, unknown>): Desa {
+  return {
+    id: d.id as number,
+    nama: d.nama as string,
+    kecamatanId: (d.kecamatan_id as number) || 0,
+    tahunPembinaan: (d.tahun_pembinaan as number) || 2026,
+    fotoCover: (d.foto_cover as string) || '',
+    profilAbstrak: (d.profil_abstrak as string) || '',
+    profilFileUrl: (d.profil_file_url as string) || '#',
+    monografiAbstrak: (d.monografi_abstrak as string) || '',
+    monografiFileUrl: (d.monografi_file_url as string) || '#',
+    latitude: Number(d.latitude) || 0,
+    longitude: Number(d.longitude) || 0,
+  };
+}
+
+function mapPublikasi(p: Record<string, unknown>): Publikasi {
+  return {
+    id: p.id as number,
+    desaId: (p.desa_id as number) || 0,
+    judul: (p.judul as string) || '',
+    tahun: (p.tahun as number) || 0,
+    ringkasan: (p.ringkasan as string) || '',
+    coverUrl: (p.cover_url as string) || '',
+    pdfUrl: (p.pdf_url as string) || '#',
+  };
+}
+
+function mapPotensi(pt: Record<string, unknown>): Potensi {
+  return {
+    id: pt.id as number,
+    desaId: (pt.desa_id as number) || 0,
+    kategori: (pt.kategori as 'ekonomi' | 'wisata' | 'investasi') || 'ekonomi',
+    subKategori: (pt.sub_kategori as string) || '',
+    nama: (pt.judul as string) || '',
+    deskripsi: (pt.deskripsi as string) || '',
+    fotoUrl: (pt.foto_url as string) || '',
+  };
+}
+
+function mapInfografis(ig: Record<string, unknown>): Infografis {
+  return {
+    id: ig.id as number,
+    desaId: (ig.desa_id as number) || 0,
+    judul: (ig.judul as string) || '',
+    imageUrl: (ig.gambar_url as string) || '',
+    pdfUrl: '#',
+  };
+}
+
+function mapMataPencaharian(item: Record<string, unknown>): MataPencaharianItem {
+  return {
+    id: item.id as number,
+    desaId: (item.desa_id as number) || 0,
+    nama: (item.nama as string) || '',
+    persentase: Number(item.persentase) || 0,
+  };
+}
+
 // ── KECAMATAN ──
 export async function getKecamatan(): Promise<Kecamatan[]> {
   try {
-    const res = await withTimeout(supabase.from('kecamatan').select('*').order('id', { ascending: true }));
-    const { data, error } = res;
-    if (error || !data || data.length === 0) {
-      return getKecamatanSync();
-    }
-    return data.map(item => ({
-      id: item.id,
-      nama: item.nama,
+    const res = await withTimeout(fetch('/api/kecamatan'));
+    if (!res.ok) return getKecamatanSync();
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return getKecamatanSync();
+    return data.map((item: Record<string, unknown>) => ({
+      id: item.id as number,
+      nama: item.nama as string,
     }));
   } catch {
     return getKecamatanSync();
@@ -74,99 +142,84 @@ export async function getKecamatan(): Promise<Kecamatan[]> {
 // ── DESA ──
 export async function getDesaList(): Promise<Desa[]> {
   try {
-    const res = await withTimeout(supabase.from('desa').select('*').order('id', { ascending: true }));
-    const { data, error } = res;
-    if (error || !data || data.length === 0) {
-      return getDesaListSync();
-    }
-    return data.map(d => ({
-      id: d.id,
-      nama: d.nama,
-      kecamatanId: d.kecamatan_id,
-      tahunPembinaan: d.tahun_pembinaan,
-      fotoCover: d.foto_cover || '',
-      profilAbstrak: d.profil_abstrak || '',
-      profilFileUrl: d.profil_file_url || '#',
-      monografiAbstrak: d.monografi_abstrak || '',
-      monografiFileUrl: d.monografi_file_url || '#',
-      latitude: Number(d.latitude) || 0,
-      longitude: Number(d.longitude) || 0,
-    }));
+    const res = await withTimeout(fetch('/api/desa'));
+    if (!res.ok) return getDesaListSync();
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return getDesaListSync();
+    return data.map(mapDesa);
   } catch {
     return getDesaListSync();
   }
 }
 
 export async function createDesa(desaData: Omit<Desa, 'id'>): Promise<Desa | null> {
-  const { data, error } = await supabase.from('desa').insert([{
-    nama: desaData.nama,
-    kecamatan_id: desaData.kecamatanId,
-    tahun_pembinaan: desaData.tahunPembinaan,
-    foto_cover: desaData.fotoCover,
-    profil_abstrak: desaData.profilAbstrak,
-    profil_file_url: desaData.profilFileUrl,
-    monografi_abstrak: desaData.monografiAbstrak,
-    monografi_file_url: desaData.monografiFileUrl,
-    latitude: desaData.latitude,
-    longitude: desaData.longitude,
-  }]).select().single();
-
-  if (error || !data) return null;
-
-  return {
-    id: data.id,
-    nama: data.nama,
-    kecamatanId: data.kecamatan_id,
-    tahunPembinaan: data.tahun_pembinaan,
-    fotoCover: data.foto_cover || '',
-    profilAbstrak: data.profil_abstrak || '',
-    profilFileUrl: data.profil_file_url || '#',
-    monografiAbstrak: data.monografi_abstrak || '',
-    monografiFileUrl: data.monografi_file_url || '#',
-    latitude: Number(data.latitude) || 0,
-    longitude: Number(data.longitude) || 0,
-  };
+  try {
+    const res = await fetch('/api/desa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nama: desaData.nama,
+        kecamatan_id: desaData.kecamatanId,
+        tahun_pembinaan: desaData.tahunPembinaan,
+        foto_cover: desaData.fotoCover,
+        profil_abstrak: desaData.profilAbstrak,
+        profil_file_url: desaData.profilFileUrl,
+        monografi_abstrak: desaData.monografiAbstrak,
+        monografi_file_url: desaData.monografiFileUrl,
+        latitude: desaData.latitude,
+        longitude: desaData.longitude,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return mapDesa(data);
+  } catch {
+    return null;
+  }
 }
 
 export async function updateDesa(id: number, desaData: Partial<Desa>): Promise<boolean> {
-  const updatePayload: Record<string, unknown> = {};
-  if (desaData.nama !== undefined) updatePayload.nama = desaData.nama;
-  if (desaData.kecamatanId !== undefined) updatePayload.kecamatan_id = desaData.kecamatanId;
-  if (desaData.tahunPembinaan !== undefined) updatePayload.tahun_pembinaan = desaData.tahunPembinaan;
-  if (desaData.fotoCover !== undefined) updatePayload.foto_cover = desaData.fotoCover;
-  if (desaData.profilAbstrak !== undefined) updatePayload.profil_abstrak = desaData.profilAbstrak;
-  if (desaData.profilFileUrl !== undefined) updatePayload.profil_file_url = desaData.profilFileUrl;
-  if (desaData.monografiAbstrak !== undefined) updatePayload.monografi_abstrak = desaData.monografiAbstrak;
-  if (desaData.monografiFileUrl !== undefined) updatePayload.monografi_file_url = desaData.monografiFileUrl;
-  if (desaData.latitude !== undefined) updatePayload.latitude = desaData.latitude;
-  if (desaData.longitude !== undefined) updatePayload.longitude = desaData.longitude;
+  try {
+    const payload: Record<string, unknown> = {};
+    if (desaData.nama !== undefined) payload.nama = desaData.nama;
+    if (desaData.kecamatanId !== undefined) payload.kecamatan_id = desaData.kecamatanId;
+    if (desaData.tahunPembinaan !== undefined) payload.tahun_pembinaan = desaData.tahunPembinaan;
+    if (desaData.fotoCover !== undefined) payload.foto_cover = desaData.fotoCover;
+    if (desaData.profilAbstrak !== undefined) payload.profil_abstrak = desaData.profilAbstrak;
+    if (desaData.profilFileUrl !== undefined) payload.profil_file_url = desaData.profilFileUrl;
+    if (desaData.monografiAbstrak !== undefined) payload.monografi_abstrak = desaData.monografiAbstrak;
+    if (desaData.monografiFileUrl !== undefined) payload.monografi_file_url = desaData.monografiFileUrl;
+    if (desaData.latitude !== undefined) payload.latitude = desaData.latitude;
+    if (desaData.longitude !== undefined) payload.longitude = desaData.longitude;
 
-  const { error } = await supabase.from('desa').update(updatePayload).eq('id', id);
-  return !error;
+    const res = await fetch(`/api/desa/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function deleteDesa(id: number): Promise<boolean> {
-  const { error } = await supabase.from('desa').delete().eq('id', id);
-  return !error;
+  try {
+    const res = await fetch(`/api/desa/${id}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 // ── PUBLIKASI ──
 export async function getPublikasi(): Promise<Publikasi[]> {
   try {
-    const res = await withTimeout(supabase.from('publikasi').select('*').order('id', { ascending: true }));
-    const { data, error } = res;
-    if (error || !data || data.length === 0) {
-      return getPublikasiSync();
-    }
-    return data.map(p => ({
-      id: p.id,
-      desaId: p.desa_id,
-      judul: p.judul,
-      tahun: p.tahun,
-      ringkasan: p.ringkasan || '',
-      coverUrl: p.cover_url || '',
-      pdfUrl: p.pdf_url || '#',
-    }));
+    const res = await withTimeout(fetch('/api/publikasi'));
+    if (!res.ok) return getPublikasiSync();
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return getPublikasiSync();
+    return data.map(mapPublikasi);
   } catch {
     return getPublikasiSync();
   }
@@ -175,20 +228,11 @@ export async function getPublikasi(): Promise<Publikasi[]> {
 // ── POTENSI ──
 export async function getPotensi(): Promise<Potensi[]> {
   try {
-    const res = await withTimeout(supabase.from('potensi').select('*').order('id', { ascending: true }));
-    const { data, error } = res;
-    if (error || !data || data.length === 0) {
-      return getPotensiSync();
-    }
-    return data.map(pt => ({
-      id: pt.id,
-      desaId: pt.desa_id,
-      kategori: pt.kategori || 'ekonomi',
-      subKategori: '',
-      nama: pt.judul,
-      deskripsi: pt.deskripsi || '',
-      fotoUrl: pt.foto_url || '',
-    }));
+    const res = await withTimeout(fetch('/api/potensi'));
+    if (!res.ok) return getPotensiSync();
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return getPotensiSync();
+    return data.map(mapPotensi);
   } catch {
     return getPotensiSync();
   }
@@ -197,18 +241,11 @@ export async function getPotensi(): Promise<Potensi[]> {
 // ── INFOGRAFIS ──
 export async function getInfografis(): Promise<Infografis[]> {
   try {
-    const res = await withTimeout(supabase.from('infografis').select('*').order('id', { ascending: true }));
-    const { data, error } = res;
-    if (error || !data || data.length === 0) {
-      return getInfografisSync();
-    }
-    return data.map(ig => ({
-      id: ig.id,
-      desaId: ig.desa_id,
-      judul: ig.judul,
-      imageUrl: ig.gambar_url || '',
-      pdfUrl: '#',
-    }));
+    const res = await withTimeout(fetch('/api/infografis'));
+    if (!res.ok) return getInfografisSync();
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return getInfografisSync();
+    return data.map(mapInfografis);
   } catch {
     return getInfografisSync();
   }
@@ -217,18 +254,14 @@ export async function getInfografis(): Promise<Infografis[]> {
 // ── DEMOGRAFI (DUSUN & SEBARAN LAKI-LAKI/PEREMPUAN) ──
 export async function getDemografiByDesaId(desaId: number): Promise<DemografiDesa> {
   try {
-    const res = await withTimeout(
-      supabase
-        .from('demografi')
-        .select('*')
-        .eq('desa_id', desaId)
-        .single()
-    );
-    const { data, error } = res;
+    const res = await withTimeout(fetch(`/api/demografi/${desaId}`));
+    if (!res.ok) return getDemografiSync(desaId);
+    const data = await res.json();
 
-    if (error || !data) return getDemografiSync(desaId);
-
-    const dusunData = data.dusun_data ? (typeof data.dusun_data === 'string' ? JSON.parse(data.dusun_data) : data.dusun_data) : undefined;
+    let dusunData = data.dusun_data;
+    if (typeof dusunData === 'string') {
+      dusunData = JSON.parse(dusunData);
+    }
 
     if (dusunData && Array.isArray(dusunData) && dusunData.length > 0) {
       return {
@@ -247,17 +280,16 @@ export async function getDemografiByDesaId(desaId: number): Promise<DemografiDes
 export async function saveDemografiByDesaId(desaId: number, data: Omit<DemografiDesa, 'desaId'>): Promise<DemografiDesa> {
   saveDemografiLocal(desaId, data);
   try {
-    const { data: dbRes, error } = await supabase
-      .from('demografi')
-      .upsert({
-        desa_id: desaId,
-        dusun_data: data.dusunData,
-      }, { onConflict: 'desa_id' })
-      .select()
-      .single();
+    const res = await fetch(`/api/demografi/${desaId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dusun_data: data.dusunData }),
+    });
 
-    if (!error && dbRes) {
-      const parsedDusun = dbRes.dusun_data ? (typeof dbRes.dusun_data === 'string' ? JSON.parse(dbRes.dusun_data) : dbRes.dusun_data) : data.dusunData;
+    if (res.ok) {
+      const dbRes = await res.json();
+      let parsedDusun = dbRes.dusun_data;
+      if (typeof parsedDusun === 'string') parsedDusun = JSON.parse(parsedDusun);
       return {
         id: dbRes.id,
         desaId: dbRes.desa_id,
@@ -265,7 +297,7 @@ export async function saveDemografiByDesaId(desaId: number, data: Omit<Demografi
       };
     }
   } catch (err) {
-    console.warn('Supabase save demografi fallback:', err);
+    console.warn('MySQL save demografi fallback:', err);
   }
   return { desaId, ...data };
 }
@@ -273,23 +305,11 @@ export async function saveDemografiByDesaId(desaId: number, data: Omit<Demografi
 // ── MATA PENCAHARIAN ──
 export async function getMataPencaharianByDesaId(desaId: number): Promise<MataPencaharianItem[]> {
   try {
-    const res = await withTimeout(
-      supabase
-        .from('mata_pencaharian')
-        .select('*')
-        .eq('desa_id', desaId)
-        .order('id', { ascending: true })
-    );
-    const { data, error } = res;
-
-    if (error || !data || data.length === 0) return getMataPencaharianSync(desaId);
-
-    return data.map(item => ({
-      id: item.id,
-      desaId: item.desa_id,
-      nama: item.nama,
-      persentase: Number(item.persentase) || 0,
-    }));
+    const res = await withTimeout(fetch(`/api/mata-pencaharian/${desaId}`));
+    if (!res.ok) return getMataPencaharianSync(desaId);
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return getMataPencaharianSync(desaId);
+    return data.map(mapMataPencaharian);
   } catch {
     return getMataPencaharianSync(desaId);
   }
@@ -298,17 +318,13 @@ export async function getMataPencaharianByDesaId(desaId: number): Promise<MataPe
 export async function saveMataPencaharianByDesaId(desaId: number, items: MataPencaharianItem[]): Promise<MataPencaharianItem[]> {
   saveMataPencaharianLocal(desaId, items);
   try {
-    await supabase.from('mata_pencaharian').delete().eq('desa_id', desaId);
-    if (items.length > 0) {
-      const payload = items.map(it => ({
-        desa_id: desaId,
-        nama: it.nama,
-        persentase: it.persentase,
-      }));
-      await supabase.from('mata_pencaharian').insert(payload);
-    }
+    await fetch(`/api/mata-pencaharian/${desaId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: items.map(it => ({ nama: it.nama, persentase: it.persentase })) }),
+    });
   } catch (err) {
-    console.warn('Supabase save mata pencaharian fallback:', err);
+    console.warn('MySQL save mata pencaharian fallback:', err);
   }
   return items;
 }
@@ -342,16 +358,13 @@ export async function createPesanKontak(pesan: {
   isi: string;
 }): Promise<boolean> {
   try {
-    const { error } = await supabase.from('pesan_kontak').insert([{
-      nama: pesan.nama,
-      email: pesan.email,
-      subjek: pesan.subjek,
-      isi: pesan.isi,
-      created_at: new Date().toISOString()
-    }]);
-    return !error;
+    const res = await fetch('/api/kontak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pesan),
+    });
+    return res.ok;
   } catch {
     return false;
   }
 }
-
