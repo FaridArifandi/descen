@@ -27,7 +27,7 @@ export interface AdminStore {
   mataPencaharian?: Record<number, MataPencaharianItem[]>;
 }
 
-const STORE_KEY = 'desacantik_admin_store_v4';
+const STORE_KEY = 'desacantik_admin_store_v5';
 
 function loadStore(): AdminStore {
   if (typeof window === 'undefined') {

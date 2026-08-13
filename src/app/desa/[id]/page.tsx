@@ -228,14 +228,12 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
         value: mp.persentase
       }));
     }
-    if (id === 2) { // Lae Saga (Pertanian)
-      return [{ name: 'Petani Pangan', value: 65 }, { name: 'Pedagang', value: 15 }, { name: 'PNS/TNI/Polri', value: 5 }, { name: 'Pekerja Jasa', value: 10 }, { name: 'Lainnya', value: 5 }];
-    } else if (id === 4) { // Penanggalan (Wisata)
-      return [{ name: 'Petani', value: 25 }, { name: 'Pedagang', value: 30 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Jasa Pariwisata', value: 30 }, { name: 'Lainnya', value: 5 }];
-    } else if (id === 5) { // Singkersing (Perkebunan Sawit)
-      return [{ name: 'Pekebun Sawit', value: 70 }, { name: 'Pedagang', value: 10 }, { name: 'PNS/TNI/Polri', value: 5 }, { name: 'Pekerja Jasa', value: 10 }, { name: 'Lainnya', value: 5 }];
-    } else if (id === 3) { // Rundeng (Kerajinan & Sungai)
-      return [{ name: 'Petani', value: 35 }, { name: 'Pengerajin/Pedagang', value: 35 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 12 }, { name: 'Lainnya', value: 8 }];
+    if (id === 1) { // Penanggalan Barat
+      return [{ name: 'Petani & Perkebunan', value: 40 }, { name: 'Pedagang / UMKM', value: 25 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 15 }, { name: 'Lainnya', value: 10 }];
+    } else if (id === 2) { // Lae Bersih
+      return [{ name: 'Petani Pangan', value: 55 }, { name: 'Pedagang', value: 20 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 10 }, { name: 'Lainnya', value: 5 }];
+    } else if (id === 3) { // Sikelang
+      return [{ name: 'Pekebun Sawit & Petani', value: 50 }, { name: 'Pedagang / UMKM', value: 20 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 12 }, { name: 'Lainnya', value: 8 }];
     }
     return [{ name: 'Petani', value: 45 }, { name: 'Pedagang', value: 20 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 15 }, { name: 'Lainnya', value: 10 }];
   }, [id, mataPencaharianData]);
