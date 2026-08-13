@@ -18,9 +18,9 @@ export const mockDesa: Desa[] = [
     tahunPembinaan: 2026,
     fotoCover: 'https://picsum.photos/seed/penanggalan-barat/800/500',
     profilAbstrak: 'Desa Penanggalan Barat terletak di Kecamatan Penanggalan, Kota Subulussalam. Merupakan salah satu desa fokus pembinaan Desa Cinta Statistik (Desa Cantik) dengan pengembangan basis data statistik potensi lokal, UMKM, serta pelayanan publik berbasis data kependudukan.',
-    profilFileUrl: '#',
+    profilFileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     monografiAbstrak: 'Monografi Desa Penanggalan Barat menyajikan gambaran kependudukan lengkap, wilayah administrasi, struktur mata pencaharian masyarakat, dan sarana prasarana desa terkini.',
-    monografiFileUrl: '#',
+    monografiFileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     latitude: 2.5761,
     longitude: 98.0289
   },
@@ -31,9 +31,9 @@ export const mockDesa: Desa[] = [
     tahunPembinaan: 2026,
     fotoCover: 'https://picsum.photos/seed/lae-bersih/800/500',
     profilAbstrak: 'Desa Lae Bersih terletak di kawasan Kecamatan Simpang Kiri. Pembinaan statistik difokuskan pada optimalisasi data sektor pertanian, tata kelola kependudukan, serta pemetaan potensi wilayah demi mendukung perencanaan pembangunan desa.',
-    profilFileUrl: '#',
+    profilFileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     monografiAbstrak: 'Dokumen monografi mencakup data kepemilikan lahan pertanian, statistik tenaga kerja, fasilitas pendidikan, dan tingkat kesejahteraan masyarakat Desa Lae Bersih.',
-    monografiFileUrl: '#',
+    monografiFileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     latitude: 2.6375,
     longitude: 98.0125
   },
@@ -44,9 +44,9 @@ export const mockDesa: Desa[] = [
     tahunPembinaan: 2026,
     fotoCover: 'https://picsum.photos/seed/sikelang/800/500',
     profilAbstrak: 'Desa Sikelang merupakan desa binaan Desa Cantik di Kecamatan Simpang Kiri dengan keunggulan sektor perkebunan dan UMKM. Fokus pembinaan statistik diarahkan pada digitalisasi data desa dan statistik ekonomi kerakyatan.',
-    profilFileUrl: '#',
+    profilFileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     monografiAbstrak: 'Monografi Desa Sikelang memuat struktur demografi penduduk, profil usaha mikro kecil menengah, potensi komoditas lokal, serta indikator pelayanan statistik desa.',
-    monografiFileUrl: '#',
+    monografiFileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     latitude: 2.5980,
     longitude: 98.0210
   }
