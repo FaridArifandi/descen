@@ -217,12 +217,33 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
     }
   };
 
-  const handleViewPdf = (fileUrl: string | undefined) => {
+  const handleViewPdf = (fileUrl: string | undefined, defaultFilename: string = 'dokumen.pdf') => {
     if (!fileUrl || fileUrl === '#' || fileUrl.trim() === '') {
       alert('Dokumen PDF belum diunggah untuk desa ini.');
       return;
     }
-    setSelectedPdf(fileUrl);
+
+    if (fileUrl.startsWith('data:')) {
+      try {
+        const arr = fileUrl.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+      } catch (err) {
+        console.error('Error viewing base64 PDF:', err);
+        handleDownloadPdf(fileUrl, defaultFilename);
+      }
+    } else {
+      window.open(fileUrl, '_blank');
+    }
   };
 
   // Web share function
@@ -469,11 +490,11 @@ export default function DesaDetail({ params }: { params: Promise<{ id: string }>
                             
                             <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-card-border/50">
                               <button
-                                onClick={() => setSelectedPdf(pub.pdfUrl)}
+                                onClick={() => handleViewPdf(pub.pdfUrl, `${pub.judul}.pdf`)}
                                 className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-primary-glow border border-primary-color/20 text-primary-color text-xs font-semibold hover:bg-primary-color hover:text-white transition-all duration-200"
                               >
                                 <Eye className="w-3.5 h-3.5" />
-                                <span>Lihat Online</span>
+                                <span>Buka / Lihat PDF</span>
                               </button>
                               <button
                                 onClick={() => handleDownloadPdf(pub.pdfUrl, `${pub.judul}.pdf`)}
