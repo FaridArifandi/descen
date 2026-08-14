@@ -351,14 +351,18 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
       <main className="flex-1 pb-20">
         {/* Banner Section */}
         <section className="relative h-64 sm:h-80 w-full overflow-hidden bg-slate-900">
-          <Image
-            src={desa.fotoCover || 'https://picsum.photos/seed/desa-cover/800/500'}
-            alt={desa.nama}
-            fill
-            priority
-            className="object-cover opacity-60"
-            sizes="100vw"
-          />
+          {desa.fotoCover ? (
+            <Image
+              src={desa.fotoCover}
+              alt={desa.nama}
+              fill
+              priority
+              className="object-cover opacity-60"
+              sizes="100vw"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-slate-900 via-primary-color/20 to-slate-900" />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
           
           <div className="absolute bottom-6 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

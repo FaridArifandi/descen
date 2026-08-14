@@ -8,8 +8,7 @@ export const mockKecamatan: Kecamatan[] = [
   { id: 5, nama: 'Longkib' }
 ];
 
-// Menggunakan picsum.photos sebagai image host yang stabil dan reliable
-// Format: https://picsum.photos/seed/<keyword>/800/500
+
 export const mockDesa: Desa[] = [
   {
     id: 1,
@@ -59,7 +58,7 @@ export const mockPublikasi: Publikasi[] = [
     judul: 'Desa Penanggalan Barat Dalam Angka 2026',
     tahun: 2026,
     ringkasan: 'Buku Publikasi Desa Penanggalan Barat Dalam Angka 2026 menyajikan statistik kependudukan, fasilitas pendidikan, kesehatan, serta perkembangan ekonomi desa sepanjang tahun pembinaan.',
-    coverUrl: 'https://picsum.photos/seed/book-cover-pb1/400/560',
+    coverUrl: '',
     pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
   },
   {
@@ -68,7 +67,7 @@ export const mockPublikasi: Publikasi[] = [
     judul: 'Desa Penanggalan Barat Dalam Angka 2025',
     tahun: 2025,
     ringkasan: 'Publikasi edisi 2025 yang memuat data dasar geografi desa, iklim, struktur aparatur desa, serta statistik sarana prasarana fisik desa.',
-    coverUrl: 'https://picsum.photos/seed/book-cover-pb2/400/560',
+    coverUrl: '',
     pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
   },
   {
@@ -77,7 +76,7 @@ export const mockPublikasi: Publikasi[] = [
     judul: 'Desa Lae Bersih Dalam Angka 2026',
     tahun: 2026,
     ringkasan: 'Publikasi komprehensif hasil pembinaan Desa Cantik tahun 2026, menitikberatkan pada data pertanian, pola tanam, dan produktivitas komoditas pangan.',
-    coverUrl: 'https://picsum.photos/seed/book-cover-lb1/400/560',
+    coverUrl: '',
     pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
   },
   {
@@ -86,7 +85,7 @@ export const mockPublikasi: Publikasi[] = [
     judul: 'Desa Lae Bersih Dalam Angka 2025',
     tahun: 2025,
     ringkasan: 'Buku statistik tahunan Desa Lae Bersih mencakup demografi penduduk, fasilitas sosial, dan gambaran umum mata pencaharian warga.',
-    coverUrl: 'https://picsum.photos/seed/book-cover-lb2/400/560',
+    coverUrl: '',
     pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
   },
   {
@@ -95,7 +94,7 @@ export const mockPublikasi: Publikasi[] = [
     judul: 'Desa Sikelang Dalam Angka 2026',
     tahun: 2026,
     ringkasan: 'Publikasi data berkala Desa Sikelang tahun 2026. Menampilkan statistik perkebunan rakyat, UMKM desa, dan hasil pendataan kependudukan.',
-    coverUrl: 'https://picsum.photos/seed/book-cover-sk1/400/560',
+    coverUrl: '',
     pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
   },
   {
@@ -104,7 +103,7 @@ export const mockPublikasi: Publikasi[] = [
     judul: 'Desa Sikelang Dalam Angka 2025',
     tahun: 2025,
     ringkasan: 'Publikasi edisi 2025 yang berisi profil statistik wilayah, indikator ekonomi desa, serta sarana prasarana umum.',
-    coverUrl: 'https://picsum.photos/seed/book-cover-sk2/400/560',
+    coverUrl: '',
     pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
   }
 ];
@@ -118,7 +117,7 @@ export const mockPotensi: Potensi[] = [
     subKategori: 'UMKM',
     nama: 'Sentra Kerajinan & Olahan Kuliner Lokal',
     deskripsi: 'Desa Penanggalan Barat memiliki sentra UMKM kuliner khas dan kerajinan tangan yang menyerap tenaga kerja produktif di lingkungan desa.',
-    fotoUrl: 'https://picsum.photos/seed/craft-market-pb/800/600'
+    fotoUrl: ''
   },
   {
     id: 2,
@@ -127,7 +126,7 @@ export const mockPotensi: Potensi[] = [
     subKategori: 'Wisata Alam & Budaya',
     nama: 'Kawasan Wisata Alam Penanggalan Barat',
     deskripsi: 'Potensi lanskap alam dan budaya lokal yang asri, menawarkan wisata panorama alam dan kegiatan kemasyarakatan.',
-    fotoUrl: 'https://picsum.photos/seed/nature-pb/800/600'
+    fotoUrl: ''
   },
   // Desa Lae Bersih
   {
@@ -137,7 +136,7 @@ export const mockPotensi: Potensi[] = [
     subKategori: 'Pertanian',
     nama: 'Sentra Pertanian Pangan & Hortikultura',
     deskripsi: 'Kawasan pertanian subur yang memproduksi komoditas tanaman pangan dan sayuran segar dengan sistem pengelolaan kelompok tani.',
-    fotoUrl: 'https://picsum.photos/seed/rice-paddy-lb/800/600'
+    fotoUrl: ''
   },
   {
     id: 4,
@@ -146,7 +145,7 @@ export const mockPotensi: Potensi[] = [
     subKategori: 'Produk Unggulan',
     nama: 'Pengolahan Minyak Nilam & Hasil Tani',
     deskripsi: 'Penyulingan minyak nilam rakyat dan unit usaha pengolahan hasil panen unggulan Desa Lae Bersih.',
-    fotoUrl: 'https://picsum.photos/seed/essential-oil-lb/800/600'
+    fotoUrl: ''
   },
   // Desa Sikelang
   {
@@ -156,7 +155,7 @@ export const mockPotensi: Potensi[] = [
     subKategori: 'Perkebunan',
     nama: 'Kawasan Perkebunan Rakyat Sikelang',
     deskripsi: 'Sentra perkebunan kelapa sawit dan komoditas perkebunan rakyat yang menjadi penopang utama ekonomi masyarakat Sikelang.',
-    fotoUrl: 'https://picsum.photos/seed/palm-plantation-sk/800/600'
+    fotoUrl: ''
   },
   {
     id: 6,
@@ -165,7 +164,7 @@ export const mockPotensi: Potensi[] = [
     subKategori: 'Produk Unggulan',
     nama: 'Sentra Industri Kecil & Perdagangan Desa',
     deskripsi: 'Pengembangan unit usaha perdagangan dan industri skala rumah tangga di sepanjang jalur utama Desa Sikelang.',
-    fotoUrl: 'https://picsum.photos/seed/trade-sk/800/600'
+    fotoUrl: ''
   }
 ];
 
@@ -174,42 +173,42 @@ export const mockInfografis: Infografis[] = [
     id: 1,
     desaId: 1,
     judul: 'Infografis Demografi Penduduk Penanggalan Barat 2026',
-    imageUrl: 'https://picsum.photos/seed/infografis-pb1/800/600',
+    imageUrl: '',
     pdfUrl: '#'
   },
   {
     id: 2,
     desaId: 1,
     judul: 'Infografis Sebaran UMKM Penanggalan Barat',
-    imageUrl: 'https://picsum.photos/seed/infografis-pb2/800/600',
+    imageUrl: '',
     pdfUrl: '#'
   },
   {
     id: 3,
     desaId: 2,
     judul: 'Infografis Demografi & Pertanian Lae Bersih 2026',
-    imageUrl: 'https://picsum.photos/seed/infografis-lb1/800/600',
+    imageUrl: '',
     pdfUrl: '#'
   },
   {
     id: 4,
     desaId: 2,
     judul: 'Infografis Sarana & Prasarana Desa Lae Bersih',
-    imageUrl: 'https://picsum.photos/seed/infografis-lb2/800/600',
+    imageUrl: '',
     pdfUrl: '#'
   },
   {
     id: 5,
     desaId: 3,
     judul: 'Infografis Statistik Kependudukan Desa Sikelang 2026',
-    imageUrl: 'https://picsum.photos/seed/infografis-sk1/800/600',
+    imageUrl: '',
     pdfUrl: '#'
   },
   {
     id: 6,
     desaId: 3,
     judul: 'Infografis Potensi Perkebunan & UMKM Sikelang',
-    imageUrl: 'https://picsum.photos/seed/infografis-sk2/800/600',
+    imageUrl: '',
     pdfUrl: '#'
   }
 ];

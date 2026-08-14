@@ -38,17 +38,20 @@ export default function Home() {
   const [stats, setStats] = useState({ totalDesa: desaList.length, totalPublikasi: 0, totalInfografis: 0, totalPotensi: 0 });
 
   useEffect(() => {
-    async function loadData() {
-      const [d, k, s] = await Promise.all([
-        getDesaList(),
-        getKecamatan(),
-        getDashboardStatsFromDb()
-      ]);
-      setDesaList(d);
-      setKecamatanList(k);
-      setStats(s);
-    }
-    loadData();
+    // 1. Ambil data desa secepat kilat secara independen
+    getDesaList()
+      .then(d => { if (d && d.length > 0) setDesaList(d); })
+      .catch(err => console.error('getDesaList error:', err));
+
+    // 2. Ambil data kecamatan
+    getKecamatan()
+      .then(k => { if (k && k.length > 0) setKecamatanList(k); })
+      .catch(err => console.error('getKecamatan error:', err));
+
+    // 3. Ambil statistik
+    getDashboardStatsFromDb()
+      .then(s => { if (s) setStats(s); })
+      .catch(err => console.error('getStats error:', err));
   }, []);
 
   const carouselRef = React.useRef<HTMLDivElement>(null);
@@ -258,13 +261,20 @@ export default function Home() {
               >
                 {/* Photo Cover Header */}
                 <div className="relative h-52 w-full overflow-hidden bg-foreground/5">
-                  <Image
-                    src={desa.fotoCover || 'https://picsum.photos/seed/desa-card/800/500'}
-                    alt={desa.nama}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                    sizes="(max-w-768px) 100vw, 360px"
-                  />
+                  {desa.fotoCover ? (
+                    <Image
+                      src={desa.fotoCover}
+                      alt={desa.nama}
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                      sizes="(max-w-768px) 100vw, 360px"
+                      priority={idx < 4}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary-color/10 via-background/40 to-glow-color/10">
+                      <Building2 className="w-10 h-10 text-primary-color/40" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
                   
                   {/* Badge Kecamatan */}

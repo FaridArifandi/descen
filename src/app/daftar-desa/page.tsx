@@ -44,12 +44,13 @@ function DaftarDesaContent() {
   const [mainTab, setMainTab] = useState<'list' | 'peta'>(initialTab);
 
   useEffect(() => {
-    async function loadData() {
-      const [d, k] = await Promise.all([getDesaList(), getKecamatan()]);
-      setDesaList(d);
-      setKecamatanList(k);
-    }
-    loadData();
+    getDesaList()
+      .then(d => { if (d && d.length > 0) setDesaList(d); })
+      .catch(err => console.error('getDesaList error:', err));
+
+    getKecamatan()
+      .then(k => { if (k && k.length > 0) setKecamatanList(k); })
+      .catch(err => console.error('getKecamatan error:', err));
   }, []);
 
   const getKecamatanName = (id: number) => {
@@ -297,13 +298,19 @@ function DaftarDesaContent() {
                     className="group flex flex-col rounded-2xl glass overflow-hidden border border-card-border hover:border-primary-color/40 hover:shadow-[0_8px_32px_rgba(0,210,255,0.05)] transition-all duration-300"
                   >
                     <div className="relative h-48 w-full overflow-hidden bg-foreground/5">
-                      <Image
-                        src={desa.fotoCover || 'https://picsum.photos/seed/desa-card/800/500'}
-                        alt={desa.nama}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        sizes="(max-w-768px) 100vw, 33vw"
-                      />
+                      {desa.fotoCover ? (
+                        <Image
+                          src={desa.fotoCover}
+                          alt={desa.nama}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          sizes="(max-w-768px) 100vw, 33vw"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary-color/10 via-background/40 to-glow-color/10">
+                          <Building className="w-10 h-10 text-primary-color/40" />
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
                       
                       {/* Badges */}
