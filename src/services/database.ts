@@ -126,7 +126,7 @@ function mapMataPencaharian(item: Record<string, unknown>): MataPencaharianItem 
 // ── KECAMATAN ──
 export async function getKecamatan(): Promise<Kecamatan[]> {
   try {
-    const res = await withTimeout(fetch('/api/kecamatan'));
+    const res = await withTimeout(fetch('/api/kecamatan', { cache: 'no-store' }));
     if (!res.ok) return getKecamatanSync();
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return getKecamatanSync();
@@ -142,11 +142,19 @@ export async function getKecamatan(): Promise<Kecamatan[]> {
 // ── DESA ──
 export async function getDesaList(): Promise<Desa[]> {
   try {
-    const res = await withTimeout(fetch('/api/desa'));
+    const res = await withTimeout(fetch('/api/desa', { cache: 'no-store' }));
     if (!res.ok) return getDesaListSync();
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return getDesaListSync();
-    return data.map(mapDesa);
+    const mapped = data.map(mapDesa);
+    if (typeof window !== 'undefined') {
+      try {
+        const store = JSON.parse(localStorage.getItem('desacantik_admin_store_v6') || '{}');
+        store.desa = mapped;
+        localStorage.setItem('desacantik_admin_store_v6', JSON.stringify(store));
+      } catch {}
+    }
+    return mapped;
   } catch {
     return getDesaListSync();
   }
@@ -215,7 +223,7 @@ export async function deleteDesa(id: number): Promise<boolean> {
 // ── PUBLIKASI ──
 export async function getPublikasi(): Promise<Publikasi[]> {
   try {
-    const res = await withTimeout(fetch('/api/publikasi'));
+    const res = await withTimeout(fetch('/api/publikasi', { cache: 'no-store' }));
     if (!res.ok) return getPublikasiSync();
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return getPublikasiSync();
@@ -228,7 +236,7 @@ export async function getPublikasi(): Promise<Publikasi[]> {
 // ── POTENSI ──
 export async function getPotensi(): Promise<Potensi[]> {
   try {
-    const res = await withTimeout(fetch('/api/potensi'));
+    const res = await withTimeout(fetch('/api/potensi', { cache: 'no-store' }));
     if (!res.ok) return getPotensiSync();
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return getPotensiSync();
@@ -241,7 +249,7 @@ export async function getPotensi(): Promise<Potensi[]> {
 // ── INFOGRAFIS ──
 export async function getInfografis(): Promise<Infografis[]> {
   try {
-    const res = await withTimeout(fetch('/api/infografis'));
+    const res = await withTimeout(fetch('/api/infografis', { cache: 'no-store' }));
     if (!res.ok) return getInfografisSync();
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return getInfografisSync();

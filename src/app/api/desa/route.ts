@@ -6,7 +6,13 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const [rows] = await pool.query('SELECT * FROM desa ORDER BY id ASC');
-    return Response.json(rows);
+    return new Response(JSON.stringify(rows), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      },
+    });
   } catch (error) {
     console.error('GET /api/desa error:', error);
     return Response.json({ error: 'Database error' }, { status: 500 });
