@@ -57,15 +57,17 @@ import {
   getInfografis,
   getDemografiByDesaId,
   getMataPencaharianByDesaId,
+  getPendidikanByDesaId,
   getDesaListSync,
   getKecamatanSync,
   getPublikasiSync,
   getPotensiSync,
   getInfografisSync,
   getDemografiSync,
-  getMataPencaharianSync
+  getMataPencaharianSync,
+  getPendidikanSync,
 } from '@/services/database';
-import { Desa, Kecamatan, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem } from '@/types';
+import { Desa, Kecamatan, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem, PendidikanDesa } from '@/types';
 
 // Chart Colors
 const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
@@ -89,6 +91,7 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
   const [infografisList, setInfografisList] = useState<Infografis[]>(() => getInfografisSync());
   const [demografiData, setDemografiData] = useState<DemografiDesa | null>(() => getDemografiSync(initialId));
   const [mataPencaharianData, setMataPencaharianData] = useState<MataPencaharianItem[]>(() => getMataPencaharianSync(initialId));
+  const [pendidikanData, setPendidikanData] = useState<PendidikanDesa>(() => getPendidikanSync(initialId));
 
   // Filter year state for Publikasi tab
   const [filterTahunPublikasi, setFilterTahunPublikasi] = useState<string>('all');
@@ -125,12 +128,14 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
   useEffect(() => {
     if (id) {
       async function loadDesaStats() {
-        const [demo, mp] = await Promise.all([
+        const [demo, mp, pend] = await Promise.all([
           getDemografiByDesaId(id),
-          getMataPencaharianByDesaId(id)
+          getMataPencaharianByDesaId(id),
+          getPendidikanByDesaId(id),
         ]);
         setDemografiData(demo);
         setMataPencaharianData(mp);
+        setPendidikanData(pend);
       }
       loadDesaStats();
     }
@@ -321,6 +326,37 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
     }
     return [{ name: 'Petani', value: 45 }, { name: 'Pedagang', value: 20 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 15 }, { name: 'Lainnya', value: 10 }];
   }, [id, mataPencaharianData]);
+
+  // Dynamic Education Data per Village (Tingkat Pendidikan by Gender)
+  const educationData = useMemo(() => {
+    if (pendidikanData && pendidikanData.data && pendidikanData.data.length > 0) {
+      return pendidikanData.data.map(item => ({
+        tingkat: item.tingkat,
+        'Laki-laki': Number(item.lakiLaki) || 0,
+        Perempuan: Number(item.perempuan) || 0,
+        Total: (Number(item.lakiLaki) || 0) + (Number(item.perempuan) || 0),
+      }));
+    }
+    return [
+      { tingkat: 'Tidak/belum tamat SD', 'Laki-laki': 0, Perempuan: 0, Total: 0 },
+      { tingkat: 'SD / MI', 'Laki-laki': 0, Perempuan: 0, Total: 0 },
+      { tingkat: 'SMP / MTs', 'Laki-laki': 0, Perempuan: 0, Total: 0 },
+      { tingkat: 'SMA / SMK / MA', 'Laki-laki': 5, Perempuan: 1, Total: 6 },
+      { tingkat: 'Diploma I / II / III', 'Laki-laki': 0, Perempuan: 1, Total: 1 },
+      { tingkat: 'S1 / Diploma IV', 'Laki-laki': 1, Perempuan: 4, Total: 5 },
+      { tingkat: 'S2 / S3 / Profesi', 'Laki-laki': 0, Perempuan: 1, Total: 1 },
+    ];
+  }, [pendidikanData]);
+
+  const educationTotals = useMemo(() => {
+    const totalLaki = educationData.reduce((sum, item) => sum + item['Laki-laki'], 0);
+    const totalPerempuan = educationData.reduce((sum, item) => sum + item.Perempuan, 0);
+    return {
+      lakiLaki: totalLaki,
+      perempuan: totalPerempuan,
+      total: totalLaki + totalPerempuan,
+    };
+  }, [educationData]);
 
   if (!desa) {
     return (
@@ -660,45 +696,119 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
                       </div>
                     </div>
 
-                    {/* Chart 2: Occupation */}
-                    <div className="glass rounded-2xl p-6 border border-card-border">
-                      <h4 className="font-bold text-foreground mb-6 text-sm sm:text-base uppercase tracking-wider">
-                        Distribusi Mata Pencaharian (%)
-                      </h4>
-                      <div className="h-80 w-full flex flex-col justify-center">
-                        <ResponsiveContainer width="100%" height="90%">
-                          <PieChart>
-                            <Pie
-                              data={occupationData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={80}
-                              paddingAngle={5}
-                              dataKey="value"
-                            >
-                              {occupationData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    {/* 
+                      Chart 2: Mata Pencaharian (Disimpan sementara / Dikomentari sesuai permintaan)
+                      <div className="glass rounded-2xl p-6 border border-card-border">
+                        <h4 className="font-bold text-foreground mb-6 text-sm sm:text-base uppercase tracking-wider">
+                          Distribusi Mata Pencaharian (%)
+                        </h4>
+                        <div className="h-80 w-full flex flex-col justify-center">
+                          <ResponsiveContainer width="100%" height="90%">
+                            <PieChart>
+                              <Pie
+                                data={occupationData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={5}
+                                dataKey="value"
+                              >
+                                {occupationData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip 
+                                formatter={(value) => `${value}%`}
+                                contentStyle={{ 
+                                  background: 'var(--card)', 
+                                  borderColor: 'var(--card-border)',
+                                  borderRadius: '12px',
+                                  color: 'var(--foreground)',
+                                  boxShadow: 'var(--glass-shadow)'
+                                }} 
+                              />
+                              <Legend 
+                                verticalAlign="bottom" 
+                                height={36} 
+                                iconType="circle"
+                                wrapperStyle={{ fontSize: '11px', color: 'var(--foreground)' }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    */}
+
+                    {/* Chart 2: Tingkat Pendidikan (Pengganti Distribusi Mata Pencaharian) */}
+                    <div className="glass rounded-2xl p-6 border border-card-border flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-bold text-foreground text-sm sm:text-base uppercase tracking-wider">
+                            Jumlah Pegawai Kantor Menurut Tingkat Pendidikan (Laki-Laki & Perempuan)
+                          </h4>
+                        </div>
+                        <div className="h-72 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={educationData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                              <XAxis 
+                                dataKey="tingkat" 
+                                stroke="#888888" 
+                                fontSize={10} 
+                                tickLine={false} 
+                                axisLine={false} 
+                                interval={0}
+                                angle={-25}
+                                textAnchor="end"
+                              />
+                              <YAxis stroke="#888888" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  background: 'var(--card)', 
+                                  borderColor: 'var(--card-border)',
+                                  borderRadius: '12px',
+                                  color: 'var(--foreground)',
+                                  boxShadow: 'var(--glass-shadow)'
+                                }} 
+                              />
+                              <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', color: 'var(--foreground)' }} />
+                              <Bar dataKey="Laki-laki" fill="#00d2ff" radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="Perempuan" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        {/* Table Summary Tingkat Pendidikan */}
+                        <div className="mt-4 border-t border-card-border pt-3 overflow-x-auto">
+                          <table className="w-full text-xs text-left">
+                            <thead>
+                              <tr className="border-b border-card-border text-muted-text font-bold uppercase tracking-wider">
+                                <th className="pb-2">Tingkat Pendidikan</th>
+                                <th className="pb-2 text-right">Laki-Laki</th>
+                                <th className="pb-2 text-right">Perempuan</th>
+                                <th className="pb-2 text-right">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-card-border/40">
+                              {educationData.map((d, idx) => (
+                                <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                                  <td className="py-1.5 font-semibold text-foreground">{d.tingkat}</td>
+                                  <td className="py-1.5 text-right font-medium text-cyan-400">{d['Laki-laki'].toLocaleString('id-ID')}</td>
+                                  <td className="py-1.5 text-right font-medium text-pink-400">{d.Perempuan.toLocaleString('id-ID')}</td>
+                                  <td className="py-1.5 text-right font-bold text-foreground">{d.Total.toLocaleString('id-ID')}</td>
+                                </tr>
                               ))}
-                            </Pie>
-                            <Tooltip 
-                              formatter={(value) => `${value}%`}
-                              contentStyle={{ 
-                                background: 'var(--card)', 
-                                borderColor: 'var(--card-border)',
-                                borderRadius: '12px',
-                                color: 'var(--foreground)',
-                                boxShadow: 'var(--glass-shadow)'
-                              }} 
-                            />
-                            <Legend 
-                              verticalAlign="bottom" 
-                              height={36} 
-                              iconType="circle"
-                              wrapperStyle={{ fontSize: '11px', color: 'var(--foreground)' }}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
+                            </tbody>
+                            <tfoot>
+                              <tr className="border-t border-card-border text-foreground font-extrabold bg-muted/20">
+                                <td className="py-2 px-1">Jumlah</td>
+                                <td className="py-2 text-right text-cyan-400">{educationTotals.lakiLaki.toLocaleString('id-ID')}</td>
+                                <td className="py-2 text-right text-pink-400">{educationTotals.perempuan.toLocaleString('id-ID')}</td>
+                                <td className="py-2 text-right text-primary-color">{educationTotals.total.toLocaleString('id-ID')}</td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
                       </div>
                     </div>
                   </div>

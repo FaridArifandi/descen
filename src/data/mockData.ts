@@ -1,4 +1,4 @@
-import { Kecamatan, Desa, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem } from '@/types';
+import { Kecamatan, Desa, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem, PendidikanDesa, PendidikanItem } from '@/types';
 
 export const mockKecamatan: Kecamatan[] = [
   { id: 1, nama: 'Simpang Kiri' },
@@ -274,5 +274,55 @@ export const mockMataPencaharian: Record<number, MataPencaharianItem[]> = {
     { desaId: 3, nama: 'Lainnya', persentase: 8 },
   ]
 };
+
+export const DEFAULT_PENDIDIKAN_CATEGORIES = [
+  'Tidak/belum tamat SD',
+  'SD / MI',
+  'SMP / MTs',
+  'SMA / SMK / MA',
+  'Diploma I / II / III',
+  'S1 / Diploma IV',
+  'S2 / S3 / Profesi'
+];
+
+export const mockPendidikan: Record<number, PendidikanDesa> = {
+  1: {
+    desaId: 1,
+    data: [
+      { tingkat: 'Tidak/belum tamat SD', lakiLaki: 0, perempuan: 0 },
+      { tingkat: 'SD / MI', lakiLaki: 0, perempuan: 0 },
+      { tingkat: 'SMP / MTs', lakiLaki: 0, perempuan: 0 },
+      { tingkat: 'SMA / SMK / MA', lakiLaki: 5, perempuan: 1 },
+      { tingkat: 'Diploma I / II / III', lakiLaki: 0, perempuan: 1 },
+      { tingkat: 'S1 / Diploma IV', lakiLaki: 1, perempuan: 4 },
+      { tingkat: 'S2 / S3 / Profesi', lakiLaki: 0, perempuan: 1 },
+    ]
+  },
+  2: {
+    desaId: 2,
+    data: [
+      { tingkat: 'Tidak/belum tamat SD', lakiLaki: 0, perempuan: 0 },
+      { tingkat: 'SD / MI', lakiLaki: 0, perempuan: 0 },
+      { tingkat: 'SMP / MTs', lakiLaki: 0, perempuan: 0 },
+      { tingkat: 'SMA / SMK / MA', lakiLaki: 4, perempuan: 2 },
+      { tingkat: 'Diploma I / II / III', lakiLaki: 1, perempuan: 1 },
+      { tingkat: 'S1 / Diploma IV', lakiLaki: 2, perempuan: 3 },
+      { tingkat: 'S2 / S3 / Profesi', lakiLaki: 0, perempuan: 0 },
+    ]
+  },
+  3: {
+    desaId: 3,
+    data: [
+      { tingkat: 'Tidak/belum tamat SD', lakiLaki: 0, perempuan: 0 },
+      { tingkat: 'SD / MI', lakiLaki: 0, perempuan: 0 },
+      { tingkat: 'SMP / MTs', lakiLaki: 0, perempuan: 0 },
+      { tingkat: 'SMA / SMK / MA', lakiLaki: 6, perempuan: 2 },
+      { tingkat: 'Diploma I / II / III', lakiLaki: 0, perempuan: 2 },
+      { tingkat: 'S1 / Diploma IV', lakiLaki: 3, perempuan: 4 },
+      { tingkat: 'S2 / S3 / Profesi', lakiLaki: 1, perempuan: 0 },
+    ]
+  }
+};
+
 
 

@@ -13,8 +13,10 @@ import {
   mockKecamatan,
   mockDemografi,
   mockMataPencaharian,
+  mockPendidikan,
+  DEFAULT_PENDIDIKAN_CATEGORIES,
 } from '@/data/mockData';
-import { Desa, Publikasi, Potensi, Infografis, Kecamatan, DemografiDesa, MataPencaharianItem } from '@/types';
+import { Desa, Publikasi, Potensi, Infografis, Kecamatan, DemografiDesa, MataPencaharianItem, PendidikanDesa, PendidikanItem } from '@/types';
 
 export interface AdminStore {
   desa: Desa[];
@@ -24,9 +26,10 @@ export interface AdminStore {
   kecamatan: Kecamatan[];
   demografi?: Record<number, DemografiDesa>;
   mataPencaharian?: Record<number, MataPencaharianItem[]>;
+  pendidikan?: Record<number, PendidikanDesa>;
 }
 
-const STORE_KEY = 'desacantik_admin_store_v6';
+const STORE_KEY = 'desacantik_admin_store_v7';
 
 function loadStore(): AdminStore {
   if (typeof window === 'undefined') {
@@ -38,6 +41,7 @@ function loadStore(): AdminStore {
       kecamatan: mockKecamatan,
       demografi: mockDemografi,
       mataPencaharian: mockMataPencaharian,
+      pendidikan: mockPendidikan,
     };
   }
 
@@ -53,6 +57,7 @@ function loadStore(): AdminStore {
         kecamatan: Array.isArray(store.kecamatan) && store.kecamatan.length > 0 ? store.kecamatan : mockKecamatan,
         demografi: store.demografi || mockDemografi,
         mataPencaharian: store.mataPencaharian || mockMataPencaharian,
+        pendidikan: store.pendidikan || mockPendidikan,
       };
     }
   } catch {
@@ -67,6 +72,7 @@ function loadStore(): AdminStore {
     kecamatan: mockKecamatan,
     demografi: mockDemografi,
     mataPencaharian: mockMataPencaharian,
+    pendidikan: mockPendidikan,
   };
   localStorage.setItem(STORE_KEY, JSON.stringify(initial));
   return initial;
@@ -519,6 +525,42 @@ export function saveMataPencaharianLocal(desaId: number, items: MataPencaharianI
   }).catch(err => console.error('Error saving mata_pencaharian to MySQL:', err));
 
   return items;
+}
+
+// ========== PENDIDIKAN ==========
+export function getPendidikanLocal(desaId: number): PendidikanDesa {
+  const store = loadStore();
+  if (store.pendidikan && store.pendidikan[desaId]) {
+    return store.pendidikan[desaId];
+  }
+  if (mockPendidikan[desaId]) {
+    return mockPendidikan[desaId];
+  }
+  return {
+    desaId,
+    data: DEFAULT_PENDIDIKAN_CATEGORIES.map(tingkat => ({
+      tingkat,
+      lakiLaki: 0,
+      perempuan: 0,
+    }))
+  };
+}
+
+export function savePendidikanLocal(desaId: number, data: PendidikanItem[]): PendidikanDesa {
+  const store = loadStore();
+  if (!store.pendidikan) store.pendidikan = { ...mockPendidikan };
+  const updatedItem: PendidikanDesa = { desaId, data };
+  store.pendidikan[desaId] = updatedItem;
+  saveStore(store);
+
+  // Sync to MySQL via API
+  fetch(`/api/pendidikan/${desaId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data }),
+  }).catch(err => console.error('Error saving pendidikan to MySQL:', err));
+
+  return updatedItem;
 }
 
 export function resetStore() {

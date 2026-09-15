@@ -77,3 +77,16 @@ export interface MataPencaharianItem {
   persentase: number;
 }
 
+export interface PendidikanItem {
+  tingkat: string;
+  lakiLaki: number;
+  perempuan: number;
+}
+
+export interface PendidikanDesa {
+  id?: number;
+  desaId: number;
+  data: PendidikanItem[];
+}
+
+

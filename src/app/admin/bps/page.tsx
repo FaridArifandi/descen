@@ -23,8 +23,11 @@ import {
   saveDemografiByDesaId,
   getMataPencaharianByDesaId,
   saveMataPencaharianByDesaId,
+  getPendidikanByDesaId,
+  savePendidikanByDesaId,
 } from '@/services/database';
-import { Desa, Publikasi, Potensi, Infografis, Kecamatan, DemografiDesa, DemografiDusun, MataPencaharianItem } from '@/types';
+import { Desa, Publikasi, Potensi, Infografis, Kecamatan, DemografiDesa, DemografiDusun, MataPencaharianItem, PendidikanItem } from '@/types';
+import { DEFAULT_PENDIDIKAN_CATEGORIES } from '@/data/mockData';
 import FileUploadInput from '@/components/FileUploadInput';
 
 type Tab = 'desa' | 'publikasi' | 'potensi' | 'infografis';
@@ -168,14 +171,16 @@ function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId:
     dusunData: []
   });
   const [mataPencaharian, setMataPencaharian] = useState<MataPencaharianItem[]>([]);
+  const [pendidikan, setPendidikan] = useState<PendidikanItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const [demo, mp] = await Promise.all([
+      const [demo, mp, pend] = await Promise.all([
         getDemografiByDesaId(desaId),
         getMataPencaharianByDesaId(desaId),
+        getPendidikanByDesaId(desaId),
       ]);
       const initialDusun = demo?.dusunData && demo.dusunData.length > 0
         ? demo.dusunData
@@ -187,6 +192,13 @@ function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId:
           ];
       setDemografi({ ...demo, dusunData: initialDusun });
       setMataPencaharian(mp);
+
+      const defaultPend = DEFAULT_PENDIDIKAN_CATEGORIES.map(tingkat => ({
+        tingkat,
+        lakiLaki: 0,
+        perempuan: 0,
+      }));
+      setPendidikan(pend?.data && pend.data.length > 0 ? pend.data : defaultPend);
       setLoading(false);
     }
     loadData();
@@ -196,6 +208,7 @@ function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId:
     await Promise.all([
       saveDemografiByDesaId(desaId, demografi),
       saveMataPencaharianByDesaId(desaId, mataPencaharian),
+      savePendidikanByDesaId(desaId, pendidikan),
     ]);
     onSaved();
   };
@@ -220,6 +233,10 @@ function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId:
   const totalPerempuan = (demografi.dusunData || []).reduce((acc, item) => acc + (Number(item.perempuan) || 0), 0);
   const grandTotal = totalLaki + totalPerempuan;
 
+  const totalPendLaki = pendidikan.reduce((acc, item) => acc + (Number(item.lakiLaki) || 0), 0);
+  const totalPendPerempuan = pendidikan.reduce((acc, item) => acc + (Number(item.perempuan) || 0), 0);
+  const totalPendSemua = totalPendLaki + totalPendPerempuan;
+
   if (loading) {
     return (
       <div className="p-8 text-center">
@@ -232,7 +249,7 @@ function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId:
     <div className="space-y-6">
       <div className="border-b border-card-border pb-3">
         <h3 className="font-bold text-sm text-foreground">Statistik Kependudukan: <span className="text-primary-color">{desaNama}</span></h3>
-        <p className="text-xs text-muted-text mt-0.5">Kelola angka demografi per dusun (sebaran Laki-Laki & Perempuan) dan persentase mata pencaharian.</p>
+        <p className="text-xs text-muted-text mt-0.5">Kelola angka demografi per dusun (sebaran Laki-Laki & Perempuan) dan tingkat pendidikan.</p>
       </div>
 
       {/* Section 1: Demografi per Dusun */}
@@ -306,59 +323,119 @@ function BpsDesaStatistikForm({ desaId, desaNama, onSaved, onCancel }: { desaId:
         </div>
       </div>
 
-      {/* Section 2: Mata Pencaharian */}
-      <div className="space-y-3 pt-3 border-t border-card-border">
-        <div className="flex items-center justify-between">
-          <h4 className="font-bold text-xs uppercase tracking-wider text-primary-color">2. Mata Pencaharian (%)</h4>
-          <button
-            type="button"
-            onClick={() => setMataPencaharian([...mataPencaharian, { desaId, nama: '', persentase: 0 }])}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-glow text-primary-color text-xs font-bold hover:bg-primary-color hover:text-white transition-all"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Tambah Pekerjaan</span>
-          </button>
-        </div>
+      {/* 
+        Section Mata Pencaharian Lama (Disimpan sementara / Dikomentari sesuai permintaan)
+        <div className="space-y-3 pt-3 border-t border-card-border">
+          <div className="flex items-center justify-between">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-primary-color">Mata Pencaharian (%)</h4>
+            <button
+              type="button"
+              onClick={() => setMataPencaharian([...mataPencaharian, { desaId, nama: '', persentase: 0 }])}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-glow text-primary-color text-xs font-bold hover:bg-primary-color hover:text-white transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Pekerjaan</span>
+            </button>
+          </div>
 
-        <div className="space-y-2.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
-          {mataPencaharian.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <input
-                className={inputCls}
-                placeholder="Nama Pekerjaan..."
-                value={item.nama}
-                onChange={e => {
-                  const next = [...mataPencaharian];
-                  next[idx].nama = e.target.value;
-                  setMataPencaharian(next);
-                }}
-              />
-              <div className="w-28 flex items-center gap-1">
+          <div className="space-y-2.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
+            {mataPencaharian.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2">
                 <input
-                  type="number"
-                  step="any"
                   className={inputCls}
-                  value={item.persentase}
+                  placeholder="Nama Pekerjaan..."
+                  value={item.nama}
                   onChange={e => {
                     const next = [...mataPencaharian];
-                    next[idx].persentase = Number(e.target.value);
+                    next[idx].nama = e.target.value;
                     setMataPencaharian(next);
                   }}
                 />
-                <span className="text-xs font-bold text-muted-text">%</span>
+                <div className="w-28 flex items-center gap-1">
+                  <input
+                    type="number"
+                    step="any"
+                    className={inputCls}
+                    value={item.persentase}
+                    onChange={e => {
+                      const next = [...mataPencaharian];
+                      next[idx].persentase = Number(e.target.value);
+                      setMataPencaharian(next);
+                    }}
+                  />
+                  <span className="text-xs font-bold text-muted-text">%</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMataPencaharian(mataPencaharian.filter((_, i) => i !== idx))}
+                  className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setMataPencaharian(mataPencaharian.filter((_, i) => i !== idx))}
-                className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+            ))}
+          </div>
+        </div>
+      */}
+
+      {/* Section 2: Tingkat Pendidikan (Pengganti Mata Pencaharian) */}
+      <div className="space-y-3 pt-3 border-t border-card-border">
+        <div className="flex items-center justify-between">
+          <h4 className="font-bold text-xs uppercase tracking-wider text-primary-color">
+            2. Jumlah Pegawai Kantor Menurut Tingkat Pendidikan (Laki-Laki & Perempuan)
+          </h4>
+        </div>
+
+        <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar pr-1">
+          <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-muted-text px-2 py-0.5">
+            <div className="col-span-6">Tingkat Pendidikan</div>
+            <div className="col-span-3 text-center text-cyan-400">Laki-Laki</div>
+            <div className="col-span-3 text-center text-pink-400">Perempuan</div>
+          </div>
+          {pendidikan.map((item, idx) => (
+            <div key={idx} className="grid grid-cols-12 gap-2 items-center p-2 rounded-xl bg-card border border-card-border">
+              <div className="col-span-6 font-semibold text-xs text-foreground px-1 truncate" title={item.tingkat}>
+                {item.tingkat}
+              </div>
+              <div className="col-span-3">
+                <input
+                  type="number"
+                  min="0"
+                  className={inputCls + " text-center font-bold text-cyan-400 py-1.5"}
+                  value={item.lakiLaki}
+                  onChange={e => {
+                    const next = [...pendidikan];
+                    next[idx] = { ...next[idx], lakiLaki: Math.max(0, parseInt(e.target.value) || 0) };
+                    setPendidikan(next);
+                  }}
+                />
+              </div>
+              <div className="col-span-3">
+                <input
+                  type="number"
+                  min="0"
+                  className={inputCls + " text-center font-bold text-pink-400 py-1.5"}
+                  value={item.perempuan}
+                  onChange={e => {
+                    const next = [...pendidikan];
+                    next[idx] = { ...next[idx], perempuan: Math.max(0, parseInt(e.target.value) || 0) };
+                    setPendidikan(next);
+                  }}
+                />
+              </div>
             </div>
           ))}
-          {mataPencaharian.length === 0 && (
-            <p className="text-xs text-muted-text text-center py-2">Belum ada data mata pencaharian.</p>
-          )}
+        </div>
+
+        <div className="p-3 rounded-xl bg-primary-glow border border-primary-color/20 flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
+          <span className="text-foreground">Total Pendidikan:</span>
+          <div className="flex items-center gap-3">
+            <span className="text-cyan-400">L: {totalPendLaki.toLocaleString('id-ID')}</span>
+            <span className="text-pink-400">P: {totalPendPerempuan.toLocaleString('id-ID')}</span>
+            <span className="text-primary-color bg-background px-2 py-0.5 rounded border border-card-border">
+              Total: {totalPendSemua.toLocaleString('id-ID')} Jiwa
+            </span>
+          </div>
         </div>
       </div>
 

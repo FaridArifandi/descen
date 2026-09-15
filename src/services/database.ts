@@ -8,8 +8,8 @@
  * - Write functions: POST/PUT/DELETE to /api/... with local store sync
  */
 
-import { Kecamatan, Desa, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem } from '@/types';
-import { mockKecamatan, mockDesa, mockPublikasi, mockPotensi, mockInfografis, mockDemografi, mockMataPencaharian } from '@/data/mockData';
+import { Kecamatan, Desa, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem, PendidikanDesa, PendidikanItem } from '@/types';
+import { mockKecamatan, mockDesa, mockPublikasi, mockPotensi, mockInfografis, mockDemografi, mockMataPencaharian, mockPendidikan } from '@/data/mockData';
 import {
   getAllDesa,
   getAllPublikasi,
@@ -20,6 +20,8 @@ import {
   saveDemografiLocal,
   getMataPencaharianLocal,
   saveMataPencaharianLocal,
+  getPendidikanLocal,
+  savePendidikanLocal,
 } from '@/data/adminStore';
 
 // ── TIMEOUT HELPER ──
@@ -61,6 +63,10 @@ export function getDemografiSync(desaId: number): DemografiDesa {
 
 export function getMataPencaharianSync(desaId: number): MataPencaharianItem[] {
   return getMataPencaharianLocal(desaId);
+}
+
+export function getPendidikanSync(desaId: number): PendidikanDesa {
+  return getPendidikanLocal(desaId);
 }
 
 // ── Helper: map MySQL row → frontend type ──
@@ -335,6 +341,49 @@ export async function saveMataPencaharianByDesaId(desaId: number, items: MataPen
     console.warn('MySQL save mata pencaharian fallback:', err);
   }
   return items;
+}
+
+// ── PENDIDIKAN ──
+export async function getPendidikanByDesaId(desaId: number): Promise<PendidikanDesa> {
+  try {
+    const res = await withTimeout(fetch(`/api/pendidikan/${desaId}`));
+    if (!res.ok) return getPendidikanSync(desaId);
+    const data = await res.json();
+    let parsedData = data.data;
+    if (typeof parsedData === 'string') parsedData = JSON.parse(parsedData);
+    if (!Array.isArray(parsedData) || parsedData.length === 0) return getPendidikanSync(desaId);
+    return {
+      id: data.id,
+      desaId: data.desa_id || desaId,
+      data: parsedData,
+    };
+  } catch {
+    return getPendidikanSync(desaId);
+  }
+}
+
+export async function savePendidikanByDesaId(desaId: number, items: PendidikanItem[]): Promise<PendidikanDesa> {
+  savePendidikanLocal(desaId, items);
+  try {
+    const res = await fetch(`/api/pendidikan/${desaId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: items }),
+    });
+    if (res.ok) {
+      const dbRes = await res.json();
+      let parsed = dbRes.data;
+      if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+      return {
+        id: dbRes.id,
+        desaId: dbRes.desa_id,
+        data: parsed,
+      };
+    }
+  } catch (err) {
+    console.warn('MySQL save pendidikan fallback:', err);
+  }
+  return { desaId, data: items };
 }
 
 // ── DASHBOARD & HELPER STATS ──
