@@ -60,15 +60,27 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-muted-text">
               <li className="flex items-start space-x-2">
                 <MapPin className="w-4 h-4 text-primary-color shrink-0 mt-0.5" />
-                <span>BPS Kota Subulussalam, Aceh, Indonesia</span>
+                <span>Jl. Raja Tua, Kompleks Perkantoran Walikota, Desa Lae Oram, Simpang Kiri, Subulussalam</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="w-4 h-4 text-primary-color shrink-0" />
-                <span>(0654) 123456</span>
+                <a 
+                  href="https://wa.me/6285165946964" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:text-primary-color transition-colors"
+                >
+                  +62 851-6594-6964 (WA)
+                </a>
               </li>
               <li className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-primary-color shrink-0" />
-                <span>bps1119@bps.go.id</span>
+                <a 
+                  href="mailto:bps1175@bps.go.id" 
+                  className="hover:text-primary-color transition-colors"
+                >
+                  bps1175@bps.go.id
+                </a>
               </li>
               <li className="flex items-center space-x-2">
                 <Globe className="w-4 h-4 text-primary-color shrink-0" />
