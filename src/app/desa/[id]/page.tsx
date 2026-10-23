@@ -58,14 +58,6 @@ import {
   getDemografiByDesaId,
   getMataPencaharianByDesaId,
   getPendidikanByDesaId,
-  getDesaListSync,
-  getKecamatanSync,
-  getPublikasiSync,
-  getPotensiSync,
-  getInfografisSync,
-  getDemografiSync,
-  getMataPencaharianSync,
-  getPendidikanSync,
 } from '@/services/database';
 import { Desa, Kecamatan, Publikasi, Potensi, Infografis, DemografiDesa, MataPencaharianItem, PendidikanDesa } from '@/types';
 
@@ -75,23 +67,22 @@ const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
 export default function DesaDetail({ params }: { params?: Promise<{ id: string }> }) {
   const urlParams = useParams();
   const rawIdParam = (typeof urlParams?.id === 'string' ? urlParams.id : Array.isArray(urlParams?.id) ? urlParams.id[0] : '') || '';
-  const initialDesaList = getDesaListSync();
-  const initialId = decodeDesaSlug(rawIdParam, initialDesaList);
   
   const [activeTab, setActiveTab] = useState<'publikasi' | 'profil' | 'potensi' | 'peta' | 'infografis'>('publikasi');
   const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
   const [selectedInfographic, setSelectedInfographic] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
 
-  // Database Data States - Instant Synchronous Initialization (0ms Latency)
-  const [desaList, setDesaList] = useState<Desa[]>(initialDesaList);
-  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>(() => getKecamatanSync());
-  const [publikasiList, setPublikasiList] = useState<Publikasi[]>(() => getPublikasiSync());
-  const [potensiList, setPotensiList] = useState<Potensi[]>(() => getPotensiSync());
-  const [infografisList, setInfografisList] = useState<Infografis[]>(() => getInfografisSync());
-  const [demografiData, setDemografiData] = useState<DemografiDesa | null>(() => getDemografiSync(initialId));
-  const [mataPencaharianData, setMataPencaharianData] = useState<MataPencaharianItem[]>(() => getMataPencaharianSync(initialId));
-  const [pendidikanData, setPendidikanData] = useState<PendidikanDesa>(() => getPendidikanSync(initialId));
+  // Pure database states (no localStorage)
+  const [desaList, setDesaList] = useState<Desa[]>([]);
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
+  const [publikasiList, setPublikasiList] = useState<Publikasi[]>([]);
+  const [potensiList, setPotensiList] = useState<Potensi[]>([]);
+  const [infografisList, setInfografisList] = useState<Infografis[]>([]);
+  const [demografiData, setDemografiData] = useState<DemografiDesa | null>(null);
+  const [mataPencaharianData, setMataPencaharianData] = useState<MataPencaharianItem[]>([]);
+  const [pendidikanData, setPendidikanData] = useState<PendidikanDesa>({ desaId: 0, data: [] });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Filter year state for Publikasi tab
   const [filterTahunPublikasi, setFilterTahunPublikasi] = useState<string>('all');
@@ -104,18 +95,25 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
 
   useEffect(() => {
     async function loadAllData() {
-      const [d, k, pub, pot, info] = await Promise.all([
-        getDesaList(),
-        getKecamatan(),
-        getPublikasi(),
-        getPotensi(),
-        getInfografis()
-      ]);
-      setDesaList(d);
-      setKecamatanList(k);
-      setPublikasiList(pub);
-      setPotensiList(pot);
-      setInfografisList(info);
+      setIsLoading(true);
+      try {
+        const [d, k, pub, pot, info] = await Promise.all([
+          getDesaList(),
+          getKecamatan(),
+          getPublikasi(),
+          getPotensi(),
+          getInfografis()
+        ]);
+        setDesaList(d);
+        setKecamatanList(k);
+        setPublikasiList(pub);
+        setPotensiList(pot);
+        setInfografisList(info);
+      } catch (err) {
+        console.error('Error loading data from database:', err);
+      } finally {
+        setIsLoading(false);
+      }
     }
     loadAllData();
   }, []);
@@ -276,7 +274,6 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
     }
   };
 
-  // Dynamic Chart Data per Village (Sebaran Dusun & Jenis Kelamin)
   const demographicData = useMemo(() => {
     if (demografiData && demografiData.dusunData && demografiData.dusunData.length > 0) {
       return demografiData.dusunData.map(item => ({
@@ -286,19 +283,9 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
         Total: item.lakiLaki + item.perempuan
       }));
     }
-    if (id === 1) { // Desa Penanggalan Barat
-      return [
-        { dusun: 'Dusun Pemancar', 'Laki-laki': 397, Perempuan: 395, Total: 792 },
-        { dusun: 'Dusun Silak', 'Laki-laki': 387, Perempuan: 341, Total: 728 },
-        { dusun: 'Dusun Gapa', 'Laki-laki': 150, Perempuan: 181, Total: 331 },
-        { dusun: 'Dusun Nurul Iman', 'Laki-laki': 160, Perempuan: 182, Total: 342 }
-      ];
-    }
-    return [
-      { dusun: 'Dusun I', 'Laki-laki': 350, Perempuan: 340, Total: 690 },
-      { dusun: 'Dusun II', 'Laki-laki': 280, Perempuan: 290, Total: 570 }
-    ];
-  }, [id, demografiData]);
+    // Kembalikan array kosong jika data belum ada di database
+    return [];
+  }, [demografiData]);
 
   const demographicTotal = useMemo(() => {
     const totalLaki = demographicData.reduce((sum, item) => sum + item['Laki-laki'], 0);
@@ -317,15 +304,9 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
         value: mp.persentase
       }));
     }
-    if (id === 1) { // Penanggalan Barat
-      return [{ name: 'Petani & Perkebunan', value: 40 }, { name: 'Pedagang / UMKM', value: 25 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 15 }, { name: 'Lainnya', value: 10 }];
-    } else if (id === 2) { // Lae Bersih
-      return [{ name: 'Petani Pangan', value: 55 }, { name: 'Pedagang', value: 20 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 10 }, { name: 'Lainnya', value: 5 }];
-    } else if (id === 3) { // Sikelang
-      return [{ name: 'Pekebun Sawit & Petani', value: 50 }, { name: 'Pedagang / UMKM', value: 20 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 12 }, { name: 'Lainnya', value: 8 }];
-    }
-    return [{ name: 'Petani', value: 45 }, { name: 'Pedagang', value: 20 }, { name: 'PNS/TNI/Polri', value: 10 }, { name: 'Pekerja Jasa', value: 15 }, { name: 'Lainnya', value: 10 }];
-  }, [id, mataPencaharianData]);
+    // Fallback kosong jika belum ada data di database
+    return [];
+  }, [mataPencaharianData]);
 
   // Dynamic Education Data per Village (Tingkat Pendidikan by Gender)
   const educationData = useMemo(() => {
@@ -357,6 +338,21 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
       total: totalLaki + totalPerempuan,
     };
   }, [educationData]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-1 flex flex-col items-center justify-center py-28 bg-grid">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-10 h-10 border-4 border-primary-color border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-medium text-muted-text animate-pulse">Memuat data desa dari database...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!desa) {
     return (
@@ -507,13 +503,19 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
                           className="glass rounded-2xl p-6 border border-card-border flex flex-col sm:flex-row gap-6 hover:shadow-[0_0_20px_rgba(0,210,255,0.05)] transition-all duration-300"
                         >
                           <div className="relative w-full sm:w-36 h-48 bg-foreground/5 rounded-xl overflow-hidden shrink-0 border border-card-border">
-                            <Image
-                              src={pub.coverUrl}
-                              alt={pub.judul}
-                              fill
-                              className="object-cover"
-                              sizes="(max-w-768px) 100vw, 150px"
-                            />
+                            {pub.coverUrl ? (
+                              <Image
+                                src={pub.coverUrl}
+                                alt={pub.judul}
+                                fill
+                                className="object-cover"
+                                sizes="(max-w-768px) 100vw, 150px"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary-color/10 via-background/40 to-glow-color/10">
+                                <BookOpen className="w-8 h-8 text-primary-color/30" />
+                              </div>
+                            )}
                             <div className="absolute top-2 right-2 px-2 py-0.5 bg-primary-color text-[10px] font-extrabold rounded-md text-white">
                               {pub.tahun}
                             </div>
@@ -638,61 +640,71 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
                       <div>
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-bold text-foreground text-sm sm:text-base uppercase tracking-wider">
-                            Demografi Penduduk per Dusun (Sebaran Laki-Laki & Perempuan)
+                            Demografi Penduduk per Dusun (Sebaran Laki-Laki &amp; Perempuan)
                           </h4>
                         </div>
-                        <div className="h-72 w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={demographicData}>
-                              <XAxis dataKey="dusun" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
-                              <YAxis stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
-                              <Tooltip 
-                                contentStyle={{ 
-                                  background: 'var(--card)', 
-                                  borderColor: 'var(--card-border)',
-                                  borderRadius: '12px',
-                                  color: 'var(--foreground)',
-                                  boxShadow: 'var(--glass-shadow)'
-                                }} 
-                              />
-                              <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', color: 'var(--foreground)' }} />
-                              <Bar dataKey="Laki-laki" fill="#00d2ff" radius={[4, 4, 0, 0]} />
-                              <Bar dataKey="Perempuan" fill="#ec4899" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
+                        {demographicData.length === 0 ? (
+                          <div className="h-72 w-full flex flex-col items-center justify-center text-center">
+                            <span className="text-3xl mb-3">📊</span>
+                            <p className="text-muted-text text-sm font-semibold">Data demografi belum tersedia</p>
+                            <p className="text-muted-text text-xs mt-1">Data akan tampil setelah diisi melalui panel admin</p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="h-72 w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={demographicData}>
+                                  <XAxis dataKey="dusun" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
+                                  <YAxis stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
+                                  <Tooltip 
+                                    contentStyle={{ 
+                                      background: 'var(--card)', 
+                                      borderColor: 'var(--card-border)',
+                                      borderRadius: '12px',
+                                      color: 'var(--foreground)',
+                                      boxShadow: 'var(--glass-shadow)'
+                                    }} 
+                                  />
+                                  <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', color: 'var(--foreground)' }} />
+                                  <Bar dataKey="Laki-laki" fill="#00d2ff" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey="Perempuan" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
 
-                        {/* Table Summary per Dusun */}
-                        <div className="mt-4 border-t border-card-border pt-3 overflow-x-auto">
-                          <table className="w-full text-xs text-left">
-                            <thead>
-                              <tr className="border-b border-card-border text-muted-text font-bold uppercase tracking-wider">
-                                <th className="pb-2">Dusun</th>
-                                <th className="pb-2 text-right">Laki-laki</th>
-                                <th className="pb-2 text-right">Perempuan</th>
-                                <th className="pb-2 text-right">Total</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-card-border/40">
-                              {demographicData.map((d, idx) => (
-                                <tr key={idx} className="hover:bg-muted/10 transition-colors">
-                                  <td className="py-1.5 font-semibold text-foreground">{d.dusun}</td>
-                                  <td className="py-1.5 text-right font-medium text-cyan-400">{d['Laki-laki'].toLocaleString('id-ID')}</td>
-                                  <td className="py-1.5 text-right font-medium text-pink-400">{d.Perempuan.toLocaleString('id-ID')}</td>
-                                  <td className="py-1.5 text-right font-bold text-foreground">{d.Total.toLocaleString('id-ID')}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                            <tfoot>
-                              <tr className="border-t border-card-border text-foreground font-extrabold bg-muted/20">
-                                <td className="py-2 px-1">Jumlah Total</td>
-                                <td className="py-2 text-right text-cyan-400">{demographicTotal.lakiLaki.toLocaleString('id-ID')}</td>
-                                <td className="py-2 text-right text-pink-400">{demographicTotal.perempuan.toLocaleString('id-ID')}</td>
-                                <td className="py-2 text-right text-primary-color">{demographicTotal.totalPenduduk.toLocaleString('id-ID')}</td>
-                              </tr>
-                            </tfoot>
-                          </table>
-                        </div>
+                            {/* Table Summary per Dusun */}
+                            <div className="mt-4 border-t border-card-border pt-3 overflow-x-auto">
+                              <table className="w-full text-xs text-left">
+                                <thead>
+                                  <tr className="border-b border-card-border text-muted-text font-bold uppercase tracking-wider">
+                                    <th className="pb-2">Dusun</th>
+                                    <th className="pb-2 text-right">Laki-laki</th>
+                                    <th className="pb-2 text-right">Perempuan</th>
+                                    <th className="pb-2 text-right">Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-card-border/40">
+                                  {demographicData.map((d, idx) => (
+                                    <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                                      <td className="py-1.5 font-semibold text-foreground">{d.dusun}</td>
+                                      <td className="py-1.5 text-right font-medium text-cyan-400">{d['Laki-laki'].toLocaleString('id-ID')}</td>
+                                      <td className="py-1.5 text-right font-medium text-pink-400">{d.Perempuan.toLocaleString('id-ID')}</td>
+                                      <td className="py-1.5 text-right font-bold text-foreground">{d.Total.toLocaleString('id-ID')}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="border-t border-card-border text-foreground font-extrabold bg-muted/20">
+                                    <td className="py-2 px-1">Jumlah Total</td>
+                                    <td className="py-2 text-right text-cyan-400">{demographicTotal.lakiLaki.toLocaleString('id-ID')}</td>
+                                    <td className="py-2 text-right text-pink-400">{demographicTotal.perempuan.toLocaleString('id-ID')}</td>
+                                    <td className="py-2 text-right text-primary-color">{demographicTotal.totalPenduduk.toLocaleString('id-ID')}</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -745,70 +757,80 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
                       <div>
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-bold text-foreground text-sm sm:text-base uppercase tracking-wider">
-                            Jumlah Pegawai Kantor Menurut Tingkat Pendidikan (Laki-Laki & Perempuan)
+                            Jumlah Pegawai Kantor Menurut Tingkat Pendidikan (Laki-Laki &amp; Perempuan)
                           </h4>
                         </div>
-                        <div className="h-72 w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={educationData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
-                              <XAxis 
-                                dataKey="tingkat" 
-                                stroke="#888888" 
-                                fontSize={10} 
-                                tickLine={false} 
-                                axisLine={false} 
-                                interval={0}
-                                angle={-25}
-                                textAnchor="end"
-                              />
-                              <YAxis stroke="#888888" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
-                              <Tooltip 
-                                contentStyle={{ 
-                                  background: 'var(--card)', 
-                                  borderColor: 'var(--card-border)',
-                                  borderRadius: '12px',
-                                  color: 'var(--foreground)',
-                                  boxShadow: 'var(--glass-shadow)'
-                                }} 
-                              />
-                              <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', color: 'var(--foreground)' }} />
-                              <Bar dataKey="Laki-laki" fill="#00d2ff" radius={[4, 4, 0, 0]} />
-                              <Bar dataKey="Perempuan" fill="#ec4899" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
+                        {educationTotals.total === 0 ? (
+                          <div className="h-72 w-full flex flex-col items-center justify-center text-center">
+                            <span className="text-3xl mb-3">🎓</span>
+                            <p className="text-muted-text text-sm font-semibold">Data pendidikan belum tersedia</p>
+                            <p className="text-muted-text text-xs mt-1">Data akan tampil setelah diisi melalui panel admin</p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="h-72 w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={educationData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                                  <XAxis 
+                                    dataKey="tingkat" 
+                                    stroke="#888888" 
+                                    fontSize={10} 
+                                    tickLine={false} 
+                                    axisLine={false} 
+                                    interval={0}
+                                    angle={-25}
+                                    textAnchor="end"
+                                  />
+                                  <YAxis stroke="#888888" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+                                  <Tooltip 
+                                    contentStyle={{ 
+                                      background: 'var(--card)', 
+                                      borderColor: 'var(--card-border)',
+                                      borderRadius: '12px',
+                                      color: 'var(--foreground)',
+                                      boxShadow: 'var(--glass-shadow)'
+                                    }} 
+                                  />
+                                  <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', color: 'var(--foreground)' }} />
+                                  <Bar dataKey="Laki-laki" fill="#00d2ff" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey="Perempuan" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
 
-                        {/* Table Summary Tingkat Pendidikan */}
-                        <div className="mt-4 border-t border-card-border pt-3 overflow-x-auto">
-                          <table className="w-full text-xs text-left">
-                            <thead>
-                              <tr className="border-b border-card-border text-muted-text font-bold uppercase tracking-wider">
-                                <th className="pb-2">Tingkat Pendidikan</th>
-                                <th className="pb-2 text-right">Laki-Laki</th>
-                                <th className="pb-2 text-right">Perempuan</th>
-                                <th className="pb-2 text-right">Total</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-card-border/40">
-                              {educationData.map((d, idx) => (
-                                <tr key={idx} className="hover:bg-muted/10 transition-colors">
-                                  <td className="py-1.5 font-semibold text-foreground">{d.tingkat}</td>
-                                  <td className="py-1.5 text-right font-medium text-cyan-400">{d['Laki-laki'].toLocaleString('id-ID')}</td>
-                                  <td className="py-1.5 text-right font-medium text-pink-400">{d.Perempuan.toLocaleString('id-ID')}</td>
-                                  <td className="py-1.5 text-right font-bold text-foreground">{d.Total.toLocaleString('id-ID')}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                            <tfoot>
-                              <tr className="border-t border-card-border text-foreground font-extrabold bg-muted/20">
-                                <td className="py-2 px-1">Jumlah</td>
-                                <td className="py-2 text-right text-cyan-400">{educationTotals.lakiLaki.toLocaleString('id-ID')}</td>
-                                <td className="py-2 text-right text-pink-400">{educationTotals.perempuan.toLocaleString('id-ID')}</td>
-                                <td className="py-2 text-right text-primary-color">{educationTotals.total.toLocaleString('id-ID')}</td>
-                              </tr>
-                            </tfoot>
-                          </table>
-                        </div>
+                            {/* Table Summary Tingkat Pendidikan */}
+                            <div className="mt-4 border-t border-card-border pt-3 overflow-x-auto">
+                              <table className="w-full text-xs text-left">
+                                <thead>
+                                  <tr className="border-b border-card-border text-muted-text font-bold uppercase tracking-wider">
+                                    <th className="pb-2">Tingkat Pendidikan</th>
+                                    <th className="pb-2 text-right">Laki-Laki</th>
+                                    <th className="pb-2 text-right">Perempuan</th>
+                                    <th className="pb-2 text-right">Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-card-border/40">
+                                  {educationData.map((d, idx) => (
+                                    <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                                      <td className="py-1.5 font-semibold text-foreground">{d.tingkat}</td>
+                                      <td className="py-1.5 text-right font-medium text-cyan-400">{d['Laki-laki'].toLocaleString('id-ID')}</td>
+                                      <td className="py-1.5 text-right font-medium text-pink-400">{d.Perempuan.toLocaleString('id-ID')}</td>
+                                      <td className="py-1.5 text-right font-bold text-foreground">{d.Total.toLocaleString('id-ID')}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="border-t border-card-border text-foreground font-extrabold bg-muted/20">
+                                    <td className="py-2 px-1">Jumlah</td>
+                                    <td className="py-2 text-right text-cyan-400">{educationTotals.lakiLaki.toLocaleString('id-ID')}</td>
+                                    <td className="py-2 text-right text-pink-400">{educationTotals.perempuan.toLocaleString('id-ID')}</td>
+                                    <td className="py-2 text-right text-primary-color">{educationTotals.total.toLocaleString('id-ID')}</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -997,13 +1019,20 @@ export default function DesaDetail({ params }: { params?: Promise<{ id: string }
                           className="group glass rounded-2xl overflow-hidden border border-card-border hover:border-primary-color/40 hover:shadow-[0_8px_32px_rgba(0,210,255,0.05)] transition-all duration-300 flex flex-col justify-between"
                         >
                           <div className="relative h-60 w-full bg-slate-900 overflow-hidden">
-                            <Image
-                              src={info.imageUrl}
-                              alt={info.judul}
-                              fill
-                              className="object-cover group-hover:scale-105 transition-transform duration-500"
-                              sizes="(max-w-768px) 100vw, 33vw"
-                            />
+                            {info.imageUrl ? (
+                              <Image
+                                src={info.imageUrl}
+                                alt={info.judul}
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                sizes="(max-w-768px) 100vw, 33vw"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary-color/10 via-background/30 to-glow-color/10">
+                                <FileImage className="w-10 h-10 text-primary-color/30" />
+                                <span className="text-xs text-muted-text mt-2 font-semibold px-4 text-center line-clamp-2">{info.judul}</span>
+                              </div>
+                            )}
                             
                             {/* Hover Actions overlay */}
                             <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">

@@ -34,32 +34,23 @@ import {
   getPublikasi,
   getPotensi,
   getInfografis,
-  getDashboardStatsFromDb,
-  getDesaListSync,
-  getKecamatanSync,
-  getPublikasiSync,
-  getPotensiSync,
-  getInfografisSync
 } from '@/services/database';
 import { Desa, Kecamatan, Publikasi, Potensi, Infografis } from '@/types';
 import { encodeDesaSlug } from '@/lib/slug';
 
-import { getAllDesa, getAllPublikasi, getAllPotensi, getAllInfografis, getKecamatanAll } from '@/data/adminStore';
-import { mockDesa, mockKecamatan, mockPublikasi, mockPotensi, mockInfografis } from '@/data/mockData';
-
 const COLORS = ['#00d2ff', '#0f62fe', '#10b981', '#f59e0b', '#8b5cf6'];
 
 export default function DashboardPage() {
-  const [desaList, setDesaList] = useState<Desa[]>(() => getDesaListSync());
-  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>(() => getKecamatanSync());
-  const [publikasiList, setPublikasiList] = useState<Publikasi[]>(() => getPublikasiSync());
-  const [potensiList, setPotensiList] = useState<Potensi[]>(() => getPotensiSync());
-  const [infografisList, setInfografisList] = useState<Infografis[]>(() => getInfografisSync());
+  const [desaList, setDesaList] = useState<Desa[]>([]);
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
+  const [publikasiList, setPublikasiList] = useState<Publikasi[]>([]);
+  const [potensiList, setPotensiList] = useState<Potensi[]>([]);
+  const [infografisList, setInfografisList] = useState<Infografis[]>([]);
   const [stats, setStats] = useState({
-    totalDesa: desaList.length,
-    totalPublikasi: publikasiList.length,
-    totalInfografis: infografisList.length,
-    totalPotensi: potensiList.length
+    totalDesa: 0,
+    totalPublikasi: 0,
+    totalInfografis: 0,
+    totalPotensi: 0
   });
 
   useEffect(() => {
@@ -72,11 +63,12 @@ export default function DashboardPage() {
           getPotensi(),
           getInfografis()
         ]);
-        const desa = d && d.length > 0 ? d : (getAllDesa().length > 0 ? getAllDesa() : mockDesa);
-        const kec = k && k.length > 0 ? k : (getKecamatanAll().length > 0 ? getKecamatanAll() : mockKecamatan);
-        const publikasi = pub && pub.length > 0 ? pub : (getAllPublikasi().length > 0 ? getAllPublikasi() : mockPublikasi);
-        const potensi = pot && pot.length > 0 ? pot : (getAllPotensi().length > 0 ? getAllPotensi() : mockPotensi);
-        const infografis = info && info.length > 0 ? info : (getAllInfografis().length > 0 ? getAllInfografis() : mockInfografis);
+
+        const desa = d || [];
+        const kec = k || [];
+        const publikasi = pub || [];
+        const potensi = pot || [];
+        const infografis = info || [];
 
         setDesaList(desa);
         setKecamatanList(kec);
@@ -91,23 +83,6 @@ export default function DashboardPage() {
         });
       } catch (err) {
         console.error('Error loading dashboard data:', err);
-        const desa = getAllDesa().length > 0 ? getAllDesa() : mockDesa;
-        const kec = getKecamatanAll().length > 0 ? getKecamatanAll() : mockKecamatan;
-        const publikasi = getAllPublikasi().length > 0 ? getAllPublikasi() : mockPublikasi;
-        const potensi = getAllPotensi().length > 0 ? getAllPotensi() : mockPotensi;
-        const infografis = getAllInfografis().length > 0 ? getAllInfografis() : mockInfografis;
-
-        setDesaList(desa);
-        setKecamatanList(kec);
-        setPublikasiList(publikasi);
-        setPotensiList(potensi);
-        setInfografisList(infografis);
-        setStats({
-          totalDesa: desa.length,
-          totalPublikasi: publikasi.length,
-          totalInfografis: infografis.length,
-          totalPotensi: potensi.length
-        });
       }
     }
     loadData();

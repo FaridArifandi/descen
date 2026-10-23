@@ -29,59 +29,24 @@ export interface AdminStore {
   pendidikan?: Record<number, PendidikanDesa>;
 }
 
-const STORE_KEY = 'desacantik_admin_store_v7';
+// In-memory runtime store (no localStorage dependency)
+let inMemoryStore: AdminStore = {
+  desa: [],
+  publikasi: [],
+  potensi: [],
+  infografis: [],
+  kecamatan: [],
+  demografi: {},
+  mataPencaharian: {},
+  pendidikan: {},
+};
 
 function loadStore(): AdminStore {
-  if (typeof window === 'undefined') {
-    return {
-      desa: mockDesa,
-      publikasi: mockPublikasi,
-      potensi: mockPotensi,
-      infografis: mockInfografis,
-      kecamatan: mockKecamatan,
-      demografi: mockDemografi,
-      mataPencaharian: mockMataPencaharian,
-      pendidikan: mockPendidikan,
-    };
-  }
-
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (raw) {
-      const store = JSON.parse(raw);
-      return {
-        desa: Array.isArray(store.desa) ? store.desa : mockDesa,
-        publikasi: Array.isArray(store.publikasi) ? store.publikasi : mockPublikasi,
-        potensi: Array.isArray(store.potensi) ? store.potensi : mockPotensi,
-        infografis: Array.isArray(store.infografis) ? store.infografis : mockInfografis,
-        kecamatan: Array.isArray(store.kecamatan) && store.kecamatan.length > 0 ? store.kecamatan : mockKecamatan,
-        demografi: store.demografi || mockDemografi,
-        mataPencaharian: store.mataPencaharian || mockMataPencaharian,
-        pendidikan: store.pendidikan || mockPendidikan,
-      };
-    }
-  } catch {
-    // ignore
-  }
-
-  const initial: AdminStore = {
-    desa: mockDesa,
-    publikasi: mockPublikasi,
-    potensi: mockPotensi,
-    infografis: mockInfografis,
-    kecamatan: mockKecamatan,
-    demografi: mockDemografi,
-    mataPencaharian: mockMataPencaharian,
-    pendidikan: mockPendidikan,
-  };
-  localStorage.setItem(STORE_KEY, JSON.stringify(initial));
-  return initial;
+  return inMemoryStore;
 }
 
 export function saveStore(store: AdminStore) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORE_KEY, JSON.stringify(store));
-  }
+  inMemoryStore = store;
 }
 
 function nextId<T extends { id: number }>(items: T[]): number {
@@ -187,6 +152,22 @@ export async function syncFromSupabase() {
     if (updated) {
       saveStore(store);
     }
+
+    // Sync kecamatan juga
+    try {
+      const kecRes = await fetch('/api/kecamatan').catch(() => null);
+      if (kecRes && kecRes.ok) {
+        const dbKec = await kecRes.json();
+        if (Array.isArray(dbKec) && dbKec.length > 0) {
+          const freshStore = loadStore();
+          freshStore.kecamatan = dbKec.map((k: Record<string, unknown>) => ({
+            id: k.id as number,
+            nama: k.nama as string,
+          }));
+          saveStore(freshStore);
+        }
+      }
+    } catch {}
   } catch {
     // fallback ke localStorage jika offline
   }
@@ -194,6 +175,10 @@ export async function syncFromSupabase() {
 
 // Trigger async sync di background saat inisialisasi browser
 if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('desacantik_admin_store_v7');
+    localStorage.removeItem('desacantik_admin_store_v6');
+  } catch {}
   syncFromSupabase();
 }
 
@@ -564,7 +549,15 @@ export function savePendidikanLocal(desaId: number, data: PendidikanItem[]): Pen
 }
 
 export function resetStore() {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(STORE_KEY);
-  }
+  inMemoryStore = {
+    desa: [],
+    publikasi: [],
+    potensi: [],
+    infografis: [],
+    kecamatan: [],
+    demografi: {},
+    mataPencaharian: {},
+    pendidikan: {},
+  };
+  syncFromSupabase();
 }

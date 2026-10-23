@@ -16,6 +16,7 @@
 const fs    = require('fs');
 const path  = require('path');
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 
 // ─── Baca .env manual ────────────────────────────────────────────────────────
 function loadEnv() {
@@ -198,17 +199,17 @@ const pendidikan = [
 ];
 
 /**
- * Users — password semua akun: pass123
- * Hash dibuat dengan bcrypt cost factor 10.
- * Untuk generate hash baru, jalankan: node -e "require('bcryptjs').hash('pass123',10).then(console.log)"
+ * Users default template
+ * Password akan di-hash secara dinamis menggunakan bcrypt.
+ * Bisa disesuaikan via ADMIN_PASSWORD atau DESA_PASSWORD di .env.
  */
-const users = [
+const defaultUsers = [
   // role bps (super admin)
-  { username: 'admin',                password_hash: '$2b$10$rw7eDvVPFASpao03fU27w.BPJg2xs3c/KiadRDRdlMdwnRUWqNdJS', role: 'bps',  desa_id: null },
+  { username: 'admin',                role: 'bps',  desa_id: null },
   // role desa
-  { username: 'desa_penanggalanbarat', password_hash: '$2b$10$3rUjIwKuJxroKxJQXGTHourzXrad/zkhdsWJ0KkLaKhptHZ6Esi7G', role: 'desa', desa_id: 1 },
-  { username: 'desa_laebersih',        password_hash: '$2b$10$hsbS/svpSQwsmxbJk6ezO.5LD6LgijtqEMyVqtAe3vwSi.Dj.JWwu', role: 'desa', desa_id: 2 },
-  { username: 'desa_sikelang',         password_hash: '$2b$10$aAetpoqjC5DUQ4arnM3qF.dtTmy2cQYH3JZgKLmz/CBrfvgbFebLK', role: 'desa', desa_id: 3 },
+  { username: 'desa_penanggalanbarat', role: 'desa', desa_id: 1 },
+  { username: 'desa_laebersih',        role: 'desa', desa_id: 2 },
+  { username: 'desa_sikelang',         role: 'desa', desa_id: 3 },
 ];
 
 // ─── Helper: upsert via INSERT … ON DUPLICATE KEY UPDATE ─────────────────────
@@ -290,19 +291,36 @@ async function main() {
   }
 
   console.log('🌱 Mengisi data users...');
-  for (const u of users) {
-    await conn.query(
-      `INSERT INTO \`users\` (\`username\`, \`password_hash\`, \`role\`, \`desa_id\`) VALUES (?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE \`password_hash\` = VALUES(\`password_hash\`), \`role\` = VALUES(\`role\`), \`desa_id\` = VALUES(\`desa_id\`)`,
-      [u.username, u.password_hash, u.role, u.desa_id]
-    );
+  const resetPasswords = process.argv.includes('--reset-passwords');
+  const adminPass = env.ADMIN_PASSWORD || 'pass123';
+  const desaPass  = env.DESA_PASSWORD || 'pass123';
+
+  for (const u of defaultUsers) {
+    const rawPass = u.role === 'bps' ? adminPass : desaPass;
+
+    const [existing] = await conn.query('SELECT id, password_hash FROM users WHERE username = ?', [u.username]);
+    const exists = Array.isArray(existing) && existing.length > 0;
+
+    if (exists && !resetPasswords) {
+      await conn.query(
+        'UPDATE users SET role = ?, desa_id = ? WHERE username = ?',
+        [u.role, u.desa_id, u.username]
+      );
+    } else {
+      const hash = await bcrypt.hash(rawPass, 10);
+      await conn.query(
+        `INSERT INTO \`users\` (\`username\`, \`password_hash\`, \`role\`, \`desa_id\`) VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE \`password_hash\` = VALUES(\`password_hash\`), \`role\` = VALUES(\`role\`), \`desa_id\` = VALUES(\`desa_id\`)`,
+        [u.username, hash, u.role, u.desa_id]
+      );
+    }
   }
 
   await conn.query('SET FOREIGN_KEY_CHECKS = 1;');
   await conn.end();
 
-  console.log('\n✅ Selesai! Ringkasan akun default (password: pass123):\n');
-  console.table(users.map(u => ({ username: u.username, role: u.role, desa_id: u.desa_id ?? '-' })));
+  console.log('\n✅ Selesai! Ringkasan akun terdaftar:\n');
+  console.table(defaultUsers.map(u => ({ username: u.username, role: u.role, desa_id: u.desa_id ?? '-' })));
   console.log('');
 }
 

@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 export type UserRole = 'bps' | 'desa';
 
 export interface AuthUser {
+  id?: number;
   username: string;
   role: UserRole;
   desaId?: number;   // only for desa role
@@ -14,32 +15,54 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   login: (username: string, password: string) => Promise<{ success: boolean; message: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// ---- Login via MySQL API (/api/auth/login) ----
-// BPS admin: username = "admin"
-// Desa admin: username = "desa_<namadesa>"
-// Password diverifikasi via bcrypt di server
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Validate real server session on mount
   useEffect(() => {
-    // Restore session from localStorage
-    try {
-      const stored = localStorage.getItem('desacantik_user');
-      if (stored) {
-        setUser(JSON.parse(stored));
+    let isMounted = true;
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/auth/me', {
+          method: 'GET',
+          cache: 'no-store',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user && isMounted) {
+            setUser({
+              id: data.user.id,
+              username: data.user.username,
+              role: data.user.role as UserRole,
+              desaId: data.user.desaId || undefined,
+              desaNama: data.user.desaNama || undefined,
+            });
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // network or server error
       }
-    } catch {
-      // ignore
+
+      if (isMounted) {
+        setUser(null);
+        localStorage.removeItem('desacantik_user');
+        setIsLoading(false);
+      }
     }
-    setIsLoading(false);
+
+    checkSession();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (username: string, password: string): Promise<{ success: boolean; message: string }> => {
@@ -54,13 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.success && data.user) {
         const authUser: AuthUser = {
+          id: data.user.id,
           username: data.user.username,
           role: data.user.role as UserRole,
           desaId: data.user.desaId || undefined,
           desaNama: data.user.desaNama || undefined,
         };
         setUser(authUser);
-        localStorage.setItem('desacantik_user', JSON.stringify(authUser));
         return { success: true, message: data.message };
       }
 
@@ -70,7 +93,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore
+    }
     setUser(null);
     localStorage.removeItem('desacantik_user');
   };

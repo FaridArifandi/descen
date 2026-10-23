@@ -1,5 +1,6 @@
 import pool from '@/lib/db';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export async function GET(
     const data = rows as Record<string, unknown>[];
 
     if (data.length === 0) {
-      return Response.json({ desa_id: Number(desaId), data: [] });
+      return NextResponse.json({ desa_id: Number(desaId), data: [] });
     }
 
     const row = data[0];
@@ -22,14 +23,14 @@ export async function GET(
       items = JSON.parse(items);
     }
 
-    return Response.json({
+    return NextResponse.json({
       id: row.id,
       desa_id: row.desa_id,
       data: items || [],
     });
   } catch (error) {
     console.error('GET /api/pendidikan/[desaId] error:', error);
-    return Response.json({ error: 'Database error' }, { status: 500 });
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 }
 
@@ -39,6 +40,19 @@ export async function PUT(
 ) {
   const { desaId } = await params;
   try {
+    const authResult = await requireAuth(request, ['bps', 'desa']);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+    if (user.role === 'desa' && Number(user.desaId) !== Number(desaId)) {
+      return NextResponse.json(
+        { error: 'Forbidden: Anda tidak berhak mengubah data pendidikan desa lain.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const items = JSON.stringify(body.data || []);
 
@@ -57,13 +71,13 @@ export async function PUT(
       parsed = JSON.parse(parsed);
     }
 
-    return Response.json({
+    return NextResponse.json({
       id: row.id,
       desa_id: row.desa_id,
       data: parsed || [],
     });
   } catch (error) {
     console.error('PUT /api/pendidikan/[desaId] error:', error);
-    return Response.json({ error: 'Database error' }, { status: 500 });
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 }

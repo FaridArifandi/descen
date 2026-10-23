@@ -1,5 +1,6 @@
 import pool from '@/lib/db';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,24 +14,23 @@ export async function GET(
     const data = rows as Record<string, unknown>[];
 
     if (data.length === 0) {
-      return Response.json({ desa_id: Number(desaId), dusun_data: [] });
+      return NextResponse.json({ desa_id: Number(desaId), dusun_data: [] });
     }
 
     const row = data[0];
-    // MySQL JSON column returns parsed object or string depending on driver
     let dusunData = row.dusun_data;
     if (typeof dusunData === 'string') {
       dusunData = JSON.parse(dusunData);
     }
 
-    return Response.json({
+    return NextResponse.json({
       id: row.id,
       desa_id: row.desa_id,
       dusun_data: dusunData || [],
     });
   } catch (error) {
     console.error('GET /api/demografi/[desaId] error:', error);
-    return Response.json({ error: 'Database error' }, { status: 500 });
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 }
 
@@ -40,6 +40,19 @@ export async function PUT(
 ) {
   const { desaId } = await params;
   try {
+    const authResult = await requireAuth(request, ['bps', 'desa']);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+    if (user.role === 'desa' && Number(user.desaId) !== Number(desaId)) {
+      return NextResponse.json(
+        { error: 'Forbidden: Anda tidak berhak mengubah data demografi desa lain.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const dusunData = JSON.stringify(body.dusun_data || []);
 
@@ -58,13 +71,13 @@ export async function PUT(
       parsedDusun = JSON.parse(parsedDusun);
     }
 
-    return Response.json({
+    return NextResponse.json({
       id: row.id,
       desa_id: row.desa_id,
       dusun_data: parsedDusun || [],
     });
   } catch (error) {
     console.error('PUT /api/demografi/[desaId] error:', error);
-    return Response.json({ error: 'Database error' }, { status: 500 });
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 }

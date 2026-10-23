@@ -191,13 +191,20 @@ export default function PublikasiPage() {
                   >
                     {/* Cover Image */}
                     <div className="relative h-48 w-full overflow-hidden bg-foreground/5 shrink-0">
-                      <Image
-                        src={pub.coverUrl}
-                        alt={pub.judul}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      />
+                      {pub.coverUrl ? (
+                        <Image
+                          src={pub.coverUrl}
+                          alt={pub.judul}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary-color/10 via-background/40 to-glow-color/10">
+                          <BookOpen className="w-10 h-10 text-primary-color/30" />
+                          <span className="text-xs text-muted-text mt-2 font-semibold">{pub.judul.slice(0, 30)}...</span>
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
                       {/* Tahun badge */}
                       <span className="absolute top-3 right-3 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase bg-primary-color/90 text-white">

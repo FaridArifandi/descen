@@ -1,5 +1,6 @@
 import pool from '@/lib/db';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,12 +13,12 @@ export async function GET(
     const [rows] = await pool.query('SELECT * FROM desa WHERE id = ?', [id]);
     const data = rows as unknown[];
     if (data.length === 0) {
-      return Response.json({ error: 'Not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
-    return Response.json(data[0]);
+    return NextResponse.json(data[0]);
   } catch (error) {
     console.error('GET /api/desa/[id] error:', error);
-    return Response.json({ error: 'Database error' }, { status: 500 });
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 }
 
@@ -27,6 +28,20 @@ export async function PUT(
 ) {
   const { id } = await params;
   try {
+    // Both BPS and Desa admin can edit, but Desa admin can only edit their own desa
+    const authResult = await requireAuth(request, ['bps', 'desa']);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
+    const { user } = authResult;
+    if (user.role === 'desa' && Number(user.desaId) !== Number(id)) {
+      return NextResponse.json(
+        { error: 'Forbidden: Anda hanya berhak mengubah data desa Anda sendiri.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const fields: string[] = [];
     const values: unknown[] = [];
@@ -52,17 +67,17 @@ export async function PUT(
     }
 
     if (fields.length === 0) {
-      return Response.json({ error: 'No fields to update' }, { status: 400 });
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
     values.push(id);
     await pool.query(`UPDATE desa SET ${fields.join(', ')} WHERE id = ?`, values);
 
     const [rows] = await pool.query('SELECT * FROM desa WHERE id = ?', [id]);
-    return Response.json((rows as unknown[])[0]);
+    return NextResponse.json((rows as unknown[])[0]);
   } catch (error) {
     console.error('PUT /api/desa/[id] error:', error);
-    return Response.json({ error: 'Database error' }, { status: 500 });
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 }
 
@@ -72,10 +87,16 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
+    // Only BPS admin can delete a desa
+    const authResult = await requireAuth(request, ['bps']);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
     await pool.query('DELETE FROM desa WHERE id = ?', [id]);
-    return Response.json({ success: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('DELETE /api/desa/[id] error:', error);
-    return Response.json({ error: 'Database error' }, { status: 500 });
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 }

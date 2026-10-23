@@ -21,6 +21,7 @@
     "@types/react-dom": "^19",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.41.0",
+    "jose": "^6.2.13",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.21.0",
     "mysql2": "^3.23.3",

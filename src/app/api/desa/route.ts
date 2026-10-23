@@ -1,9 +1,10 @@
 import pool from '@/lib/db';
 import { NextRequest } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const [rows] = await pool.query('SELECT * FROM desa ORDER BY id ASC');
     return new Response(JSON.stringify(rows), {
@@ -21,6 +22,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Only BPS admin can create a new desa
+    const authResult = await requireAuth(request, ['bps']);
+    if ('errorResponse' in authResult) {
+      return authResult.errorResponse;
+    }
+
     const body = await request.json();
     const { nama, kecamatan_id, tahun_pembinaan, foto_cover, profil_abstrak, profil_file_url, monografi_abstrak, monografi_file_url, latitude, longitude } = body;
 

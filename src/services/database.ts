@@ -35,7 +35,7 @@ function withTimeout<T>(promise: Promise<T>, ms = 5000): Promise<T> {
   });
 }
 
-// ── FAST SYNCHRONOUS GETTERS (0ms Instant Cache) ──
+// ── FAST SYNCHRONOUS GETTERS (0ms Instant Cache from localStorage) ──
 export function getKecamatanSync(): Kecamatan[] {
   const local = getKecamatanAll();
   return local && local.length > 0 ? local : mockKecamatan;
@@ -153,13 +153,6 @@ export async function getDesaList(): Promise<Desa[]> {
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return getDesaListSync();
     const mapped = data.map(mapDesa);
-    if (typeof window !== 'undefined') {
-      try {
-        const store = JSON.parse(localStorage.getItem('desacantik_admin_store_v6') || '{}');
-        store.desa = mapped;
-        localStorage.setItem('desacantik_admin_store_v6', JSON.stringify(store));
-      } catch {}
-    }
     return mapped;
   } catch {
     return getDesaListSync();
@@ -233,7 +226,8 @@ export async function getPublikasi(): Promise<Publikasi[]> {
     if (!res.ok) return getPublikasiSync();
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return getPublikasiSync();
-    return data.map(mapPublikasi);
+    const mapped = data.map(mapPublikasi);
+    return mapped;
   } catch {
     return getPublikasiSync();
   }
@@ -246,7 +240,8 @@ export async function getPotensi(): Promise<Potensi[]> {
     if (!res.ok) return getPotensiSync();
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return getPotensiSync();
-    return data.map(mapPotensi);
+    const mapped = data.map(mapPotensi);
+    return mapped;
   } catch {
     return getPotensiSync();
   }
@@ -259,7 +254,8 @@ export async function getInfografis(): Promise<Infografis[]> {
     if (!res.ok) return getInfografisSync();
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return getInfografisSync();
-    return data.map(mapInfografis);
+    const mapped = data.map(mapInfografis);
+    return mapped;
   } catch {
     return getInfografisSync();
   }

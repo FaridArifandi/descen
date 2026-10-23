@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, LogIn, ShieldCheck, Building2, AlertCircle, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, LogIn, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { mockDesa } from '@/data/mockData';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -17,7 +16,6 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showHint, setShowHint] = useState(false);
 
   // Redirect kalau sudah login
   useEffect(() => {
@@ -36,14 +34,7 @@ export default function LoginPage() {
     if (!result.success) {
       setError(result.message);
     }
-    // jika sukses, useEffect di atas akan handle redirect
   };
-
-  // Buat daftar hint username desa
-  function buildDesaUsername(nama: string): string {
-    const stripped = nama.toLowerCase().replace(/^desa\s+/i, '').replace(/[^a-z0-9]/g, '');
-    return 'desa_' + stripped;
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-grid relative overflow-hidden px-4">
@@ -83,8 +74,9 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                placeholder="admin / desa_namadesa"
+                placeholder="Masukkan username"
                 required
+                autoComplete="username"
                 className="w-full px-4 py-3 rounded-xl bg-background border border-card-border focus:border-primary-color focus:ring-2 focus:ring-primary-color/20 outline-none transition-all text-foreground placeholder:text-muted-text text-sm"
               />
             </div>
@@ -102,6 +94,7 @@ export default function LoginPage() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
                   className="w-full px-4 py-3 pr-12 rounded-xl bg-background border border-card-border focus:border-primary-color focus:ring-2 focus:ring-primary-color/20 outline-none transition-all text-foreground placeholder:text-muted-text text-sm"
                 />
                 <button
@@ -147,47 +140,10 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Hint box */}
-          <div className="mt-6 border-t border-card-border pt-5">
-            <button
-              onClick={() => setShowHint(v => !v)}
-              className="flex items-center gap-2 text-xs text-muted-text hover:text-foreground transition-colors w-full"
-            >
-              <span className="font-semibold">Daftar akses login</span>
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showHint ? 'rotate-180' : ''}`} />
-            </button>
-            <AnimatePresence>
-              {showHint && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-3 space-y-2">
-                    {/* BPS */}
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-color/5 border border-primary-color/15">
-                      <ShieldCheck className="w-3.5 h-3.5 text-primary-color shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-primary-color">Admin BPS</p>
-                        <p className="text-[11px] text-muted-text font-mono">admin / pass123</p>
-                      </div>
-                    </div>
-                    {/* Desa list */}
-                    <p className="text-[11px] text-muted-text font-semibold mt-2 px-1">Admin Desa (semua password: pass123)</p>
-                    {mockDesa.map(d => (
-                      <div key={d.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-foreground/3 border border-card-border">
-                        <Building2 className="w-3.5 h-3.5 text-muted-text shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-foreground truncate">{d.nama}</p>
-                          <p className="text-[11px] text-muted-text font-mono">{buildDesaUsername(d.nama)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <div className="mt-6 border-t border-card-border pt-4 text-center">
+            <p className="text-xs text-muted-text">
+              Akses terbatas hanya untuk administrator resmi BPS dan Desa.
+            </p>
           </div>
         </div>
 
