@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate": "node scripts/migrate.js",
+    "migrate:fresh": "node scripts/migrate.js --fresh",
+    "seed": "node scripts/seed.js",
+    "db:setup": "npm run migrate && npm run seed"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4",
